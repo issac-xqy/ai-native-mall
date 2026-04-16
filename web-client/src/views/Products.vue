@@ -2,6 +2,21 @@
   <div class="products">
     <h2>全部商品</h2>
     
+    <!-- 分类筛选 -->
+    <div class="category-filter">
+      <span class="filter-label">分类：</span>
+      <el-radio-group v-model="selectedCategoryId" @change="handleCategoryChange">
+        <el-radio-button :value="0">全部</el-radio-button>
+        <el-radio-button 
+          v-for="category in categories" 
+          :key="category.id" 
+          :value="category.id"
+        >
+          {{ category.name }}
+        </el-radio-button>
+      </el-radio-group>
+    </div>
+    
     <!-- 搜索和筛选 -->
     <div class="filters">
       <el-input
@@ -115,7 +130,14 @@ interface Product {
   stock?: number
   sentimentScore: number | string
   publishStatus?: number
+  categoryId?: number
   [key: string]: any
+}
+
+interface Category {
+  id: number
+  name: string
+  parentId: number
 }
 
 const router = useRouter()
@@ -123,6 +145,8 @@ const route = useRoute()
 const cartStore = useCartStore()
 
 const products = ref<Product[]>([])
+const categories = ref<Category[]>([])
+const selectedCategoryId = ref<number>(0)
 const keyword = ref('')
 const pageNum = ref(1)
 const pageSize = ref(12)
@@ -192,8 +216,9 @@ const loadProducts = async () => {
         sortOrder = 'desc'
     }
     
+    const categoryIdParam = selectedCategoryId.value > 0 ? selectedCategoryId.value : ''
     const data = await get<any>(
-      `/api/product/list?pageNum=${pageNum.value}&pageSize=${pageSize.value}&keyword=${keyword.value}&sortField=${sortField}&sortOrder=${sortOrder}`
+      `/api/product/list?pageNum=${pageNum.value}&pageSize=${pageSize.value}&categoryId=${categoryIdParam}&keyword=${keyword.value}&sortField=${sortField}&sortOrder=${sortOrder}`
     )
     console.log('📥 商品列表接口返回:', data)
     // 后端返回: {success: true, data: {records: [...], total: xxx}}
@@ -221,7 +246,27 @@ const goToProduct = (id: number) => {
   router.push(`/product/${id}`)
 }
 
+// 加载分类列表
+const loadCategories = async () => {
+  try {
+    const data = await get<any>('/api/category/list')
+    if (data.success) {
+      // 只显示一级分类（parentId为0的）
+      categories.value = data.data.filter((cat: Category) => cat.parentId === 0)
+    }
+  } catch (error) {
+    console.error('加载分类列表失败', error)
+  }
+}
+
+// 分类切换
+const handleCategoryChange = () => {
+  pageNum.value = 1
+  loadProducts()
+}
+
 onMounted(() => {
+  loadCategories()
   loadProducts()
 })
 </script>
@@ -230,6 +275,22 @@ onMounted(() => {
 .products {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.category-filter {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
 }
 
 .filters {
