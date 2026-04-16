@@ -1,0 +1,260 @@
+# ==================== Application Base Configuration ====================
+server:
+  port: 8080
+  servlet:
+    encoding:
+      force: true
+      charset: UTF-8
+      enabled: true
+
+spring:
+  application:
+    name: ai-native-mall
+
+  # Force traditional MVC mode (avoid conflict with WebFlux/Gateway)
+  main:
+    web-application-type: SERVLET
+  
+  # UTF-8 encoding configuration
+  # Disable Spring AI autoconfiguration (project uses LangChain4j primarily)
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.ai.AiAutoConfiguration
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+  
+  # Nacos configuration import declaration (required for Spring Cloud 2023+)
+  config:
+    import: optional:nacos
+  
+  # ==================== JDK 17 Traditional Thread Pool Configuration ====================
+  threads:
+    virtual:
+      enabled: false
+  task:
+    execution:
+      pool:
+        core-size: 50
+        max-size: 200
+        queue-capacity: 1000
+  
+  # ==================== Nacos Registration & Config Center ====================
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        enabled: false
+        server-addr: 127.0.0.1:8848
+    
+    # ==================== Sentinel Traffic Protection Configuration ====================
+    sentinel:
+      transport:
+        dashboard: localhost:8080
+      eager: true
+  
+  # ==================== MySQL 8.0+ Database Configuration ====================
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ai_mall}?useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_general_ci&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:1234}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+  
+  # Auto execute schema.sql to initialize database
+  # WARNING: Set to 'never' in production to avoid duplicate data insertion on every startup
+  sql:
+    init:
+      mode: never  # Changed from 'always' to prevent duplicate INSERT on each startup
+      schema-locations: classpath:schema.sql
+      continue-on-error: true
+  
+  # ==================== Redis 7.0+ Vector Database Configuration ====================
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 100
+          max-idle: 20
+          min-idle: 5
+          max-wait: 3000ms
+  
+  # ==================== Elasticsearch Full-Text Search ====================
+  elasticsearch:
+    uris: ${ES_URIS:http://localhost:9200}
+    username: ${ES_USERNAME:elastic}
+    password: ${ES_PASSWORD:your_es_password}
+    connection-timeout: 5s
+    socket-timeout: 30s
+  
+  # ==================== AI Model Configuration (Tongyi Qianwen / DeepSeek) ====================
+  app:
+    ai:
+      api-key: ${AI_API_KEY:sk-cb4b3227c603405eb24f7f3c6ca6ce98}
+      base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+      model: ${AI_MODEL:qwen-max}
+      temperature: ${AI_TEMPERATURE:0.7}
+      max-tokens: ${AI_MAX_TOKENS:2000}
+      top-p: ${AI_TOP_P:0.8}
+      
+      # Embedding 模型配置
+      # 可选: text-embedding-v4 / text-embedding-v3 / text-embedding-v2
+      embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-v4}
+      # v4/v3: 1536维, v2: 768维
+      embedding-dimension: ${AI_EMBEDDING_DIMENSION:1536}
+      # 是否使用外部 Embedding 模型（默认true）
+      use-external-embedding: ${USE_EXTERNAL_EMBEDDING:true}
+      # 向量维度不匹配时是否自动清理（默认true）
+      auto-clear-vector-store: ${AUTO_CLEAR_VECTOR_STORE:true}
+      
+      deepseek-api-key: ${DEEPSEEK_API_KEY:sk-placeholder}
+      deepseek-base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+      deepseek-model: ${DEEPSEEK_MODEL:deepseek-chat}
+  
+  # ==================== File Upload Configuration ====================
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+  
+  # File upload path and access URL
+  file:
+    upload:
+      path: ./uploads
+    access:
+      url: http://localhost:8080/uploads
+
+# ==================== MyBatis Plus Configuration ====================
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: org.example.java_ai.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# ==================== Redisson Configuration ====================
+redisson:
+  config: |
+    singleServerConfig:
+      address: "redis://host.docker.internal:6380"
+      database: 0
+      connectionPoolSize: 64
+      connectionMinimumIdleSize: 10
+      retryAttempts: 3
+      retryInterval: 1500
+      connectTimeout: 10000
+      timeout: 3000
+
+# ==================== LangChain4j Configuration ====================
+langchain4j:
+  open-ai-chat-model:
+    api-key: ${spring.app.ai.api-key}
+    base-url: ${spring.app.ai.base-url}
+    model-name: ${spring.app.ai.model}
+    temperature: ${spring.app.ai.temperature}
+    max-tokens: ${spring.app.ai.max-tokens}
+    timeout: PT120S
+    log-requests: true
+    log-responses: true
+
+# ==================== Sentinel AI Interface Circuit Breaker Rules ====================
+sentinel:
+  ai:
+    degrade:
+      rt-max-rt: 3000
+      time-window: 10
+      min-request-amount: 5
+
+# ==================== RocketMQ Message Queue Configuration ====================
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: ai-mall-producer-group
+    send-message-timeout: 3000
+    retry-times-when-send-failed: 2
+
+# ==================== Seata Distributed Transaction Configuration ====================
+seata:
+  enabled: false
+  application-id: ${spring.application.name}
+  tx-service-group: ai-mall-tx-group
+  service:
+    vgroup-mapping:
+      ai-mall-tx-group: default
+    grouplist:
+      default: 127.0.0.1:8091
+  config:
+    type: nacos
+    nacos:
+      server-addr: ${spring.cloud.nacos.config.server-addr}
+  registry:
+    type: nacos
+    nacos:
+      server-addr: ${spring.cloud.nacos.config.server-addr}
+      application: seata-server
+
+# ==================== JWT Security Configuration ====================
+jwt:
+  secret: ${JWT_SECRET:change-this-to-a-secure-random-string-at-least-256-bits-long}
+  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days
+  header: ${JWT_HEADER:Authorization}
+  prefix: ${JWT_PREFIX:Bearer }
+ai:
+  gateway:
+    prompt-filter:
+      enabled: true
+      max-length: 2000
+      sensitive-words-enabled: true
+
+# ==================== Logging Configuration ====================
+logging:
+  level:
+    root: INFO
+    org.example.java_ai: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+  file:
+    name: logs/ai-mall.log
+    max-size: 100MB
+    max-history: 30
+
+# ==================== SkyWalking APM Configuration ====================
+skywalking:
+  agent:
+    service_name: ${spring.application.name}
+  collector:
+    backend_service: localhost:11800
+  logging:
+    file_name: logs/skywalking-api.log
+    level: INFO
+
+# ==================== Actuator Monitoring Endpoints ====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
