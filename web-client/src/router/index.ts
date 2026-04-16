@@ -63,6 +63,12 @@ const router = createRouter({
       component: () => import('@/views/AIChat.vue')
     },
     {
+      path: '/wallet',
+      name: 'Wallet',
+      component: () => import('@/views/Wallet.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/views/NotFound.vue')

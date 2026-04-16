@@ -20,6 +20,7 @@
             <el-badge v-if="cartStore.totalCount > 0" :value="cartStore.totalCount" class="cart-badge" />
           </el-menu-item>
           <el-menu-item index="/orders">我的订单</el-menu-item>
+          <el-menu-item index="/wallet">我的钱包</el-menu-item>
           <el-menu-item index="/ai-chat">AI客服</el-menu-item>
           <el-menu-item index="/profile">个人中心</el-menu-item>
         </el-menu>
