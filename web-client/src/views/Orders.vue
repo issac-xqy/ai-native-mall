@@ -145,8 +145,10 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ShoppingCart } from '@element-plus/icons-vue'
 import { get, put } from '../utils/request'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const orders = ref<any[]>([])
 const loading = ref(false)
 const statusFilter = ref<string | number>('')
@@ -172,10 +174,15 @@ const resetFilter = () => {
 const loadOrders = async () => {
   loading.value = true
   try {
-    const userId = 1 // TODO: 从 UserStore 获取
+    const userId = userStore.userInfo?.id
+    if (!userId) {
+      ElMessage.warning('请先登录')
+      return
+    }
+    
     const url = statusFilter.value !== '' && statusFilter.value !== undefined
-      ? `/api/order/list?userId=${userId}&status=${statusFilter.value}`
-      : `/api/order/list?userId=${userId}`
+      ? `/api/order/list?status=${statusFilter.value}`
+      : `/api/order/list`
     
     console.log('加载订单 - URL:', url, '状态过滤:', statusFilter.value)
     const data = await get<any>(url)

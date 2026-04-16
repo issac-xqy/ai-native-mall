@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.example.java_ai.service.UserWalletService;
+import org.example.java_ai.entity.UserWallet;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class OrderController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final UserWalletService walletService;
 
     /**
      * 创建订单
@@ -252,22 +255,78 @@ public class OrderController {
      */
     @PutMapping("/{orderNo}/pay")
     public ResponseEntity<Map<String, Object>> payOrder(
+            HttpServletRequest servletRequest,
             @PathVariable String orderNo,
             @RequestBody Map<String, Object> request) {
         try {
+            // 从拦截器中获取用户ID
+            Long userId = (Long) servletRequest.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "未登录"));
+            }
+            
             String paymentMethod = (String) request.get("paymentMethod");
             
-            // 更新订单状态为已支付
-            String sql = "UPDATE orders SET status = 1 WHERE order_no = ? AND status = 0";
-            int rows = jdbcTemplate.update(sql, orderNo);
+            // 1. 获取订单信息
+            String orderSql = "SELECT id, user_id, total_amount, status FROM orders WHERE order_no = ? AND deleted = 0";
+            List<Map<String, Object>> orderList = jdbcTemplate.queryForList(orderSql, orderNo);
+            
+            if (orderList.isEmpty()) {
+                return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", "订单不存在"
+                ));
+            }
+            
+            Map<String, Object> order = orderList.get(0);
+            Integer status = (Integer) order.get("status");
+            
+            // 只有待支付的订单可以支付
+            if (status != 0) {
+                return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", "订单已支付或状态异常"
+                ));
+            }
+            
+            BigDecimal totalAmount = (BigDecimal) order.get("total_amount");
+            
+            // 2. 检查钱包余额是否充足
+            UserWallet wallet = walletService.getOrCreateWallet(userId);
+            if (wallet.getBalance().compareTo(totalAmount) < 0) {
+                BigDecimal needAmount = totalAmount.subtract(wallet.getBalance());
+                log.warn("余额不足 - 用户ID: {}, 钱包余额: {}, 订单金额: {}, 需充值: {}", 
+                        userId, wallet.getBalance(), totalAmount, needAmount);
+                return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", "钱包余额不足，还差¥" + needAmount + "，请充值后再支付",
+                    "needRecharge", needAmount
+                ));
+            }
+            
+            // 3. 扣款
+            boolean deductSuccess = walletService.deductBalance(userId, totalAmount, "订单支付-" + orderNo);
+            if (!deductSuccess) {
+                return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", "支付失败，请重试"
+                ));
+            }
+            
+            // 4. 更新订单状态为已支付
+            String updateSql = "UPDATE orders SET status = 1 WHERE order_no = ? AND status = 0";
+            int rows = jdbcTemplate.update(updateSql, orderNo);
             
             if (rows > 0) {
-                log.info("订单支付成功 - 订单号: {}, 支付方式: {}", orderNo, paymentMethod);
+                log.info("订单支付成功 - 订单号: {}, 支付方式: {}, 扣款金额: {}", orderNo, paymentMethod, totalAmount);
                 return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "支付成功"
+                    "message", "支付成功",
+                    "newBalance", walletService.getBalance(userId)
                 ));
             } else {
+                // 如果更新订单失败，需要回滚扣款
+                walletService.refund(userId, totalAmount, "支付失败退款-" + orderNo);
                 return ResponseEntity.ok(Map.of(
                     "success", false,
                     "message", "订单不存在或已支付"

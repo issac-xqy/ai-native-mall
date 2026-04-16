@@ -567,10 +567,10 @@ const buyNow = () => {
     path: '/checkout',
     query: {
       fromCart: 'false',
-      productId: product.value.id,
+      productId: String(product.value.id),
       productName: product.value.name,
-      price: product.value.price,
-      quantity: quantity.value
+      price: String(product.value.price),
+      quantity: String(quantity.value)
     }
   })
 }

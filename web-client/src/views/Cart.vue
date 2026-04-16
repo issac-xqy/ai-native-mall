@@ -95,9 +95,11 @@ import { useCartStore } from '../stores/cart'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Warning } from '@element-plus/icons-vue'
+import { useUserStore } from '../stores/user'
 
 const cartStore = useCartStore()
 const router = useRouter()
+const userStore = useUserStore()
 
 // 运费规则：满 99 包邮，否则收 10 元运费
 const FREE_SHIPPING_THRESHOLD = 99
@@ -159,6 +161,13 @@ const checkout = () => {
     ElMessage.warning('请先选择要结算的商品')
     return
   }
+  
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login?redirect=/checkout?fromCart=true')
+    return
+  }
+  
   router.push('/checkout?fromCart=true')
 }
 </script>

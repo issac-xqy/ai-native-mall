@@ -43,6 +43,9 @@
                 <span class="sales">已售 {{ formatSales(product.sales) }}</span>
                 <span class="rating">⭐ {{ getRating(product.sentimentScore) }}</span>
               </div>
+              <el-button type="primary" size="small" @click.stop="addToCart(product)">
+                加入购物车
+              </el-button>
             </div>
           </el-card>
         </el-col>
@@ -54,6 +57,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCartStore } from '../stores/cart'
+import { ElMessage } from 'element-plus'
+import { useUserStore } from '../stores/user'
 
 // 商品数据类型定义
 interface Product {
@@ -72,6 +78,8 @@ interface Product {
 }
 
 const router = useRouter()
+const cartStore = useCartStore()
+const userStore = useUserStore()
 const hotProducts = ref<Product[]>([])
 
 const loadProducts = async () => {
@@ -98,6 +106,17 @@ const getFullImageUrl = (path: string) => {
   if (path.startsWith('/')) return path
   if (path.startsWith('http')) return path
   return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='
+}
+
+// 添加到购物车
+const addToCart = (product: Product) => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login?redirect=/')
+    return
+  }
+  cartStore.addToCart(product, 1)
+  ElMessage.success('已加入购物车')
 }
 
 const goToProduct = (id: number | string) => {

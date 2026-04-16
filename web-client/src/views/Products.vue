@@ -116,6 +116,7 @@ import { useCartStore } from '../stores/cart'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { get } from '../utils/request'
+import { useUserStore } from '../stores/user'
 
 // 商品数据类型定义
 interface Product {
@@ -143,6 +144,7 @@ interface Category {
 const router = useRouter()
 const route = useRoute()
 const cartStore = useCartStore()
+const userStore = useUserStore()
 
 const products = ref<Product[]>([])
 const categories = ref<Category[]>([])
@@ -238,6 +240,11 @@ const loadProducts = async () => {
 }
 
 const addToCart = (product: any) => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login?redirect=/products')
+    return
+  }
   cartStore.addToCart(product, 1)
   ElMessage.success('已加入购物车')
 }
