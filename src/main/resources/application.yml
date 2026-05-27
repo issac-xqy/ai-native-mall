@@ -226,8 +226,8 @@ ai:
 # ==================== Logging Configuration ====================
 logging:
   level:
-    root: INFO
-    org.example.java_ai: DEBUG
+    root: WARN
+    org.example.java_ai: WARN
   pattern:
     console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
   file:
@@ -254,6 +254,8 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
   prometheus:
     metrics:
       export:
