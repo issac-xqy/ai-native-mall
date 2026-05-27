@@ -1,8 +1,20 @@
-HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+### Runtime Artifacts ###
+logs/
+.vite/
+uploads/
+nacos/
+rocketmq/
+.vite/
+
+### Node (root only, web-client has its own node_modules) ###
+/node_modules/
+/package.json
+/package-lock.json
 
 ### STS ###
 .apt_generated

@@ -23,30 +23,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 public class JavaAiApplication {
 
     public static void main(String[] args) {
-        // JDK 17 兼容模式
         System.setProperty("spring.threads.virtual.enabled", "false");
         
         SpringApplication.run(JavaAiApplication.class, args);
-        
-        System.out.println("""
-                
-                ========================================
-                  AI-Native Smart Mall 启动成功！
-                  
-                  技术栈:
-                  - Spring Boot 3.2 + JDK 17 (兼容模式)
-                  - Spring AI + LangChain4j
-                  - Nacos + Sentinel + Gateway
-                  - Redis Vector + Elasticsearch
-                  
-                  API文档:
-                  - 智能客服: POST /api/ai/customer-service/ask
-                  - 流式对话: GET /api/ai/customer-service/stream
-                  - SEO标题: POST /api/ai/product/seo-title
-                  - 商品描述: POST /api/ai/product/description
-                  - 评论分析: POST /api/ai/comment/analyze
-                  ========================================
-                """);
     }
 
 }

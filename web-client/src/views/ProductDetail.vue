@@ -109,7 +109,7 @@
 
       <!-- 商品描述 -->
       <div class="description">
-        <h3>📝 商品描述</h3>
+        <h3>商品描述</h3>
         <p>{{ product.description || product.aiDescription || '暂无描述' }}</p>
       </div>
       
@@ -118,7 +118,7 @@
       <!-- 用户评价 -->
       <div class="reviews">
         <div class="reviews-header">
-          <h3>💬 用户评价 ({{ reviewTotal }})</h3>
+          <h3>用户评价 ({{ reviewTotal }})</h3>
           <el-button type="primary" size="small" @click="showReviewForm = !showReviewForm">
             {{ showReviewForm ? '取消评价' : '我要评价' }}
           </el-button>
@@ -175,7 +175,7 @@
             <p class="review-content">{{ review.content }}</p>
             <div class="review-tags" v-if="review.sentiment">
               <el-tag :type="review.sentiment === 'positive' ? 'success' : review.sentiment === 'negative' ? 'danger' : 'info'" size="small">
-                {{ review.sentiment === 'positive' ? '👍 好评' : review.sentiment === 'negative' ? '👎 差评' : '😐 中评' }}
+                {{ review.sentiment === 'positive' ? '好评' : review.sentiment === 'negative' ? '差评' : '中评' }}
               </el-tag>
             </div>
           </div>

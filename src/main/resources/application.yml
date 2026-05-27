@@ -1,6 +1,6 @@
 # ==================== Application Base Configuration ====================
 server:
-  port: 8080
+  port: 8081
   servlet:
     encoding:
       force: true
@@ -57,7 +57,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ai_mall}?useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_general_ci&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:1234}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 50
       minimum-idle: 10
@@ -100,7 +100,7 @@ spring:
   # ==================== AI Model Configuration (Tongyi Qianwen / DeepSeek) ====================
   app:
     ai:
-      api-key: ${AI_API_KEY:sk-cb4b3227c603405eb24f7f3c6ca6ce98}
+      api-key: ${AI_API_KEY}
       base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
       model: ${AI_MODEL:qwen-max}
       temperature: ${AI_TEMPERATURE:0.7}
@@ -117,7 +117,7 @@ spring:
       # 向量维度不匹配时是否自动清理（默认true）
       auto-clear-vector-store: ${AUTO_CLEAR_VECTOR_STORE:true}
       
-      deepseek-api-key: ${DEEPSEEK_API_KEY:sk-placeholder}
+      deepseek-api-key: ${DEEPSEEK_API_KEY}
       deepseek-base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
       deepseek-model: ${DEEPSEEK_MODEL:deepseek-chat}
   
@@ -132,7 +132,7 @@ spring:
     upload:
       path: ./uploads
     access:
-      url: http://localhost:8080/uploads
+      url: http://localhost:8081/uploads
 
 # ==================== MyBatis Plus Configuration ====================
 mybatis-plus:

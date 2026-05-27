@@ -19,7 +19,7 @@
     <description>2026 AI原生智能商城 - Spring Boot 3.2 + JDK 21 + Spring AI + LangChain4j</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <spring-cloud.version>2023.0.1</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
         <spring-ai.version>1.0.0-M6</spring-ai.version>
@@ -242,6 +242,29 @@
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- H2 内存数据库（Mapper 测试用） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- WireMock（AI API Mock 用） -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>3.9.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- MyBatis Plus 测试支持 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter-test</artifactId>
+            <version>${mybatis-plus.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -287,20 +310,17 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
-                    <!-- JDK 17 兼容模式 + UTF-8 编码 -->
                     <jvmArguments>--add-opens java.base/java.lang=ALL-UNNAMED -Dfile.encoding=UTF-8 -Dconsole.encoding=UTF-8</jvmArguments>
-                    <!-- Windows 命令行长度限制修复 -->
-                    <shortenClasspath>CLASSPATH_FILE</shortenClasspath>
                 </configuration>
             </plugin>
 
-            <!-- JDK 17 编译插件 -->
+            <!-- JDK 21 编译插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
         </plugins>

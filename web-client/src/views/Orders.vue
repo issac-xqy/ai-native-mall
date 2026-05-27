@@ -1,6 +1,6 @@
 <template>
   <div class="orders">
-    <h2>📦 我的订单</h2>
+    <h2>我的订单</h2>
     
     <!-- 骨架屏 Loading -->
     <el-card v-if="loading" class="order-card" v-for="i in 2" :key="i">
