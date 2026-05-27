@@ -100,7 +100,7 @@ spring:
   # ==================== AI Model Configuration (Tongyi Qianwen / DeepSeek) ====================
   app:
     ai:
-      api-key: ${AI_API_KEY}
+      api-key: ${AI_API_KEY:sk-placeholder}
       base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
       model: ${AI_MODEL:qwen-max}
       temperature: ${AI_TEMPERATURE:0.7}
@@ -117,7 +117,7 @@ spring:
       # 向量维度不匹配时是否自动清理（默认true）
       auto-clear-vector-store: ${AUTO_CLEAR_VECTOR_STORE:true}
       
-      deepseek-api-key: ${DEEPSEEK_API_KEY}
+      deepseek-api-key: ${DEEPSEEK_API_KEY:sk-placeholder}
       deepseek-base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
       deepseek-model: ${DEEPSEEK_MODEL:deepseek-chat}
   
