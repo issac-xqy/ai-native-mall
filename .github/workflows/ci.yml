@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis/redis-stack:latest
+        ports:
+          - 6379:6379
+      elasticsearch:
+        image: elasticsearch:8.11.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+        ports:
+          - 9200:9200
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests
+        env:
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_NAME: ai_mall
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          ES_URIS: http://localhost:9200
+          ES_USERNAME: elastic
+          ES_PASSWORD: elastic
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          JWT_SECRET: ci-test-secret-do-not-use-in-production
+        run: ./mvnw test -B
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: target/surefire-reports/
