@@ -12,6 +12,7 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -30,11 +31,14 @@ class UserWalletServiceTest {
     @Mock
     private RechargeRecordMapper rechargeRecordMapper;
 
+    @Mock
+    private JdbcTemplate jdbcTemplate;
+
     private UserWalletServiceImpl walletService;
 
     @BeforeEach
     void setUp() {
-        walletService = new UserWalletServiceImpl(rechargeRecordMapper);
+        walletService = new UserWalletServiceImpl(rechargeRecordMapper, jdbcTemplate);
         ReflectionTestUtils.setField(walletService, "baseMapper", walletMapper);
     }
 
@@ -96,7 +100,8 @@ class UserWalletServiceTest {
         doReturn(record).when(rechargeRecordMapper).selectOne(any());
         doReturn(1).when(rechargeRecordMapper).updateById((RechargeRecord) any());
         doReturn(buildWallet(2L, 1L, "100.00")).when(walletMapper).selectOne(any(), anyBoolean());
-        doReturn(1).when(walletMapper).updateById((UserWallet) any());
+        doReturn(1).when(walletMapper).insert((UserWallet) any());
+        doReturn(1).when(walletMapper).refund(anyLong(), any(), any());
 
         assertTrue(walletService.confirmRechargeSuccess("R001", "OUT_001"));
         assertEquals(1, record.getStatus());
@@ -113,8 +118,7 @@ class UserWalletServiceTest {
     @Test
     @DisplayName("confirmRechargeSuccess-已处理记录-返回false")
     void confirmRechargeSuccess_AlreadyProcessed_ReturnsFalse() {
-        doReturn(buildRecord(1L, 1L, "200.00", "R001", 1))
-                .when(rechargeRecordMapper).selectOne(any());
+        doReturn(null).when(rechargeRecordMapper).selectOne(any());
 
         assertFalse(walletService.confirmRechargeSuccess("R001", "OUT_002"));
     }
@@ -122,8 +126,8 @@ class UserWalletServiceTest {
     @Test
     @DisplayName("deductBalance-余额充足-扣款成功")
     void deductBalance_Sufficient_ReturnsTrue() {
-        doReturn(buildWallet(1L, 1L, "500.00")).when(walletMapper).selectOne(any(), anyBoolean());
-        doReturn(1).when(walletMapper).updateById((UserWallet) any());
+        // 原子SQL返回 > 0 表示成功
+        doReturn(1).when(walletMapper).deductBalance(eq(1L), any(), any());
 
         assertTrue(walletService.deductBalance(1L, new BigDecimal("300.00"), "购买商品"));
     }
@@ -131,7 +135,8 @@ class UserWalletServiceTest {
     @Test
     @DisplayName("deductBalance-余额不足-返回false")
     void deductBalance_Insufficient_ReturnsFalse() {
-        doReturn(buildWallet(1L, 1L, "100.00")).when(walletMapper).selectOne(any(), anyBoolean());
+        // 原子SQL返回 0 表示余额不足
+        doReturn(0).when(walletMapper).deductBalance(eq(1L), any(), any());
 
         assertFalse(walletService.deductBalance(1L, new BigDecimal("500.00"), "买不起"));
     }
@@ -140,7 +145,7 @@ class UserWalletServiceTest {
     @DisplayName("refund-正常退款-余额增加")
     void refund_Normal_IncreasesBalance() {
         doReturn(buildWallet(1L, 1L, "1000.00")).when(walletMapper).selectOne(any(), anyBoolean());
-        doReturn(1).when(walletMapper).updateById((UserWallet) any());
+        doReturn(1).when(walletMapper).refund(eq(1L), any(), any());
 
         assertTrue(walletService.refund(1L, new BigDecimal("200.00"), "订单退款"));
     }

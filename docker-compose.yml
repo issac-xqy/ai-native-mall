@@ -1,27 +1,4 @@
-version: '3.8'
-
 services:
-  # 1. Nacos: 注册中心与配置中心 (微服务的大脑)
-  nacos:
-    image: nacos/nacos-server:v2.2.3  # 改为 2.2.3
-    container_name: nacos-ai-mall
-    environment:
-      MODE: standalone
-    ports:
-      - "8848:8848"
-      - "9848:9848"
-    volumes:
-      - ./nacos/logs:/home/nacos/logs
-
-  # 2. Redis: 缓存与向量数据库 (AI的海马体)
-  redis:
-    image: redis/redis-stack:latest
-    container_name: redis-ai-mall
-    ports:
-      - "6380:6379"
-      - "8002:8001" # RedisInsight 可视化界面
-
-  # 3. MySQL: 业务数据存储
   mysql:
     image: mysql:8.0
     container_name: mysql-ai-mall
@@ -32,30 +9,46 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # 4. Elasticsearch: 全文检索
-  elasticsearch:
-    image: elasticsearch:8.11.0
-    container_name: es-ai-mall
-    environment:
-      - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - xpack.security.enabled=false
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis-ai-mall
     ports:
-      - "9200:9200"
+      - "6380:6379"
+      - "8002:8001"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-    # 5. RocketMQ: 消息队列 (削峰填谷)
-  rocketmq:
-    image: apache/rocketmq:5.1.4
-    container_name: rocketmq-ai-mall
-    command: sh mqnamesrv   # 显式指定启动 NameServer
-    environment:
-      JAVA_OPT_EXT: "-Xms256m -Xmx256m"
+  app:
+    build: .
+    container_name: ai-mall-app
     ports:
-      - "9876:9876"
+      - "8081:8081"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=ai_mall
+      - DB_USERNAME=root
+      - DB_PASSWORD=1234
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_API_KEY=${AI_API_KEY:-sk-placeholder}
     volumes:
-      - ./rocketmq/logs:/home/rocketmq/logs
-      - ./rocketmq/store:/home/rocketmq/store
+      - uploads-data:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   mysql-data:
+  uploads-data:

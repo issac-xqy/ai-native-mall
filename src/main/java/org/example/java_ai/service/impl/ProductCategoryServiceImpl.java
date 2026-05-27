@@ -182,16 +182,13 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
      */
     private List<ProductCategory> buildTree(List<ProductCategory> allCategories, Long parentId) {
         List<ProductCategory> tree = new ArrayList<>();
-        
         for (ProductCategory category : allCategories) {
             if (category.getParentId().equals(parentId)) {
-                // 递归查找子分类
                 List<ProductCategory> children = buildTree(allCategories, category.getId());
-                // 这里可以通过扩展实体类添加children字段来支持树形结构
+                category.setChildren(children.isEmpty() ? null : children);
                 tree.add(category);
             }
         }
-        
         return tree;
     }
 }

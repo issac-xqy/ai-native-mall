@@ -1,6 +1,11 @@
 # ==================== Application Base Configuration ====================
+app:
+  admin:
+    user-ids: 1,2
+
 server:
   port: 8081
+  shutdown: graceful
   servlet:
     encoding:
       force: true
@@ -14,6 +19,9 @@ spring:
   # Force traditional MVC mode (avoid conflict with WebFlux/Gateway)
   main:
     web-application-type: SERVLET
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   
   # UTF-8 encoding configuration
   # Disable Spring AI autoconfiguration (project uses LangChain4j primarily)
@@ -22,31 +30,13 @@ spring:
       - org.springframework.boot.autoconfigure.ai.AiAutoConfiguration
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
   
-  # Nacos configuration import declaration (required for Spring Cloud 2023+)
-  config:
-    import: optional:nacos
   
-  # ==================== JDK 17 Traditional Thread Pool Configuration ====================
+  # ==================== JDK 21 Virtual Threads ====================
   threads:
     virtual:
-      enabled: false
-  task:
-    execution:
-      pool:
-        core-size: 50
-        max-size: 200
-        queue-capacity: 1000
+      enabled: true
   
-  # ==================== Nacos Registration & Config Center ====================
   cloud:
-    nacos:
-      discovery:
-        server-addr: 127.0.0.1:8848
-      config:
-        enabled: false
-        server-addr: 127.0.0.1:8848
-    
-    # ==================== Sentinel Traffic Protection Configuration ====================
     sentinel:
       transport:
         dashboard: localhost:8080
@@ -67,10 +57,9 @@ spring:
       leak-detection-threshold: 60000
   
   # Auto execute schema.sql to initialize database
-  # WARNING: Set to 'never' in production to avoid duplicate data insertion on every startup
   sql:
     init:
-      mode: never  # Changed from 'always' to prevent duplicate INSERT on each startup
+      mode: always
       schema-locations: classpath:schema.sql
       continue-on-error: true
   
@@ -89,13 +78,6 @@ spring:
           min-idle: 5
           max-wait: 3000ms
   
-  # ==================== Elasticsearch Full-Text Search ====================
-  elasticsearch:
-    uris: ${ES_URIS:http://localhost:9200}
-    username: ${ES_USERNAME:elastic}
-    password: ${ES_PASSWORD:your_es_password}
-    connection-timeout: 5s
-    socket-timeout: 30s
   
   # ==================== AI Model Configuration (Tongyi Qianwen / DeepSeek) ====================
   app:
@@ -152,14 +134,23 @@ mybatis-plus:
 redisson:
   config: |
     singleServerConfig:
-      address: "redis://host.docker.internal:6380"
-      database: 0
+      address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}"
+      database: ${REDIS_DATABASE:0}
       connectionPoolSize: 64
       connectionMinimumIdleSize: 10
       retryAttempts: 3
       retryInterval: 1500
       connectTimeout: 10000
       timeout: 3000
+
+# ==================== SpringDoc OpenAPI Configuration ====================
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
 
 # ==================== LangChain4j Configuration ====================
 langchain4j:
@@ -173,79 +164,7 @@ langchain4j:
     log-requests: true
     log-responses: true
 
-# ==================== Sentinel AI Interface Circuit Breaker Rules ====================
-sentinel:
-  ai:
-    degrade:
-      rt-max-rt: 3000
-      time-window: 10
-      min-request-amount: 5
-
-# ==================== RocketMQ Message Queue Configuration ====================
-rocketmq:
-  name-server: localhost:9876
-  producer:
-    group: ai-mall-producer-group
-    send-message-timeout: 3000
-    retry-times-when-send-failed: 2
-
-# ==================== Seata Distributed Transaction Configuration ====================
-seata:
-  enabled: false
-  application-id: ${spring.application.name}
-  tx-service-group: ai-mall-tx-group
-  service:
-    vgroup-mapping:
-      ai-mall-tx-group: default
-    grouplist:
-      default: 127.0.0.1:8091
-  config:
-    type: nacos
-    nacos:
-      server-addr: ${spring.cloud.nacos.config.server-addr}
-  registry:
-    type: nacos
-    nacos:
-      server-addr: ${spring.cloud.nacos.config.server-addr}
-      application: seata-server
-
-# ==================== JWT Security Configuration ====================
-jwt:
-  secret: ${JWT_SECRET:change-this-to-a-secure-random-string-at-least-256-bits-long}
-  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days
-  header: ${JWT_HEADER:Authorization}
-  prefix: ${JWT_PREFIX:Bearer }
-ai:
-  gateway:
-    prompt-filter:
-      enabled: true
-      max-length: 2000
-      sensitive-words-enabled: true
-
-# ==================== Logging Configuration ====================
-logging:
-  level:
-    root: WARN
-    org.example.java_ai: WARN
-  pattern:
-    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
-  file:
-    name: logs/ai-mall.log
-    max-size: 100MB
-    max-history: 30
-
-# ==================== SkyWalking APM Configuration ====================
-skywalking:
-  agent:
-    service_name: ${spring.application.name}
-  collector:
-    backend_service: localhost:11800
-  logging:
-    file_name: logs/skywalking-api.log
-    level: INFO
-
-# ==================== Actuator Monitoring Endpoints ====================
+# ==================== Actuator Health Probes ====================
 management:
   endpoints:
     web:

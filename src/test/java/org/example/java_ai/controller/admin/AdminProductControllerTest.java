@@ -18,7 +18,11 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AdminProductController.class)
+@WebMvcTest(value = AdminProductController.class,
+        excludeAutoConfiguration = {
+            org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
+            org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class
+        })
 @DisplayName("AdminProductController MockMvc 测试")
 class AdminProductControllerTest {
 
@@ -35,9 +39,9 @@ class AdminProductControllerTest {
 
         mockMvc.perform(get("/api/admin/product/list"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.data").isArray());
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.data").isArray());
     }
 
     @Test
@@ -50,7 +54,7 @@ class AdminProductControllerTest {
         mockMvc.perform(get("/api/admin/product/list")
                         .param("publishStatus", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(0));
+                .andExpect(jsonPath("$.data.total").value(0));
     }
 
     @Test
@@ -68,7 +72,7 @@ class AdminProductControllerTest {
                             {"name":"新商品","price":1999.00,"stock":100,"categoryId":1}
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     @Test
@@ -82,7 +86,7 @@ class AdminProductControllerTest {
                             {"name":"改后商品","price":2599.00}
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     @Test
@@ -92,7 +96,7 @@ class AdminProductControllerTest {
 
         mockMvc.perform(delete("/api/admin/product/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     private Product buildProduct(Long id, String name, String price) {

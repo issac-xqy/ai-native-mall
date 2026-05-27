@@ -1,89 +1,70 @@
 package org.example.java_ai.config;
 
+import com.github.houbb.sensitive.word.bs.SensitiveWordBs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Service;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * AI接口安全配置 - 鉴权与限流
- * 
- * 安全措施：
- * 1. API Key鉴权：防止未授权访问
- * 2. Redis令牌桶限流：防止Token被盗刷
- * 3. 请求频率控制：单用户QPS限制
- * 4. 敏感词过滤：防止提示词注入攻击
- * 
- * @author xqy
- * @since 2026-04-09
+ * AI接口安全服务 - API Key 鉴权、限流、敏感词过滤
  */
 @Slf4j
-@Configuration
+@Service
 @RequiredArgsConstructor
 public class AiSecurityConfig {
 
     private final RedisRateLimiter redisRateLimiter;
 
+    private final Set<String> validApiKeys = ConcurrentHashMap.newKeySet();
+
+    private final SensitiveWordBs sensitiveWordBs = SensitiveWordBs.newInstance()
+            .enableWordCheck(true)
+            .init();
+
     /**
-     * AI接口限流拦截器
-     * 
-     * 限流规则：
-     * - 单用户QPS: 10次/秒
-     * - 单API Key日调用上限: 10000次
-     * - 突发流量峰值: 50次/秒（允许短时突发）
+     * 注册有效 API Key（生产环境应从数据库或配置中心同步）
      */
+    public void registerApiKey(String apiKey) {
+        if (apiKey != null && apiKey.startsWith("sk-")) {
+            validApiKeys.add(apiKey);
+        }
+    }
+
     public boolean checkRateLimit(String userId, String apiKey) {
-        // 使用Redis实现限流（替换原来的ConcurrentHashMap）
-        // QPS限流：1秒内最多10次
         boolean qpsOk = redisRateLimiter.tryAcquire("qps:" + userId, 10, 1);
         if (!qpsOk) {
             log.warn("用户 {} 触发QPS限流", userId);
             return false;
         }
-        
-        // 日调用上限：24小时内最多10000次
         boolean dailyOk = redisRateLimiter.tryAcquire("daily:" + apiKey, 10000, 86400);
         if (!dailyOk) {
             log.warn("API Key {} 达到日调用上限", apiKey);
             return false;
         }
-        
         return true;
     }
 
-    /**
-     * 敏感词过滤器
-     * 防止提示词注入攻击
-     */
-    public String filterSensitiveWords(String prompt) {
-        // 使用sensitive-word库进行敏感词过滤
-        // 简单实现，生产环境应加载完整的敏感词库
-        String[] sensitiveWords = {
-            "忽略之前的指令",
-            "绕过限制",
-            "系统提示词",
-            "管理员权限",
-            "你是谁开发的",
-            "你的训练数据"
-        };
-        
-        String filtered = prompt;
-        for (String word : sensitiveWords) {
-            if (filtered.contains(word)) {
-                log.warn("检测到敏感词: {}", word);
-                filtered = filtered.replace(word, "***");
-            }
-        }
-        
-        return filtered;
+    public String filterSensitiveWords(String text) {
+        if (text == null || text.isEmpty()) return text;
+        return sensitiveWordBs.replace(text);
     }
 
-    /**
-     * 验证API Key
-     */
     public boolean validateApiKey(String apiKey) {
-        // 生产环境应从数据库或配置中心验证
-        return apiKey != null && !apiKey.isEmpty() && apiKey.startsWith("sk-");
+        if (apiKey == null || apiKey.isEmpty()) return false;
+        if (!apiKey.startsWith("sk-")) return false;
+        if (validApiKeys.isEmpty()) {
+            // 未配置任何 API Key 时，任何 sk- 开头的 key 都通过
+            // 生产环境应注册白名单 key 或对接配置中心
+            return true;
+        }
+        return validApiKeys.contains(apiKey);
+    }
+
+    public void revokeApiKey(String apiKey) {
+        validApiKeys.remove(apiKey);
+        log.info("API Key 已撤销: {}...", apiKey.substring(0, Math.min(10, apiKey.length())));
     }
 }

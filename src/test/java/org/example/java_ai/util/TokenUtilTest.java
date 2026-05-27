@@ -8,13 +8,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("TokenUtil 单元测试")
 class TokenUtilTest {
 
-    // ==================== generateToken ====================
-
     @Test
     @DisplayName("generateToken-正常userId-生成包含Bearer前缀的token")
     void generateToken_ValidUserId_ReturnsBearerToken() {
         String token = TokenUtil.generateToken(1L);
-
         assertNotNull(token);
         assertTrue(token.startsWith("Bearer "));
         assertTrue(token.length() > "Bearer ".length());
@@ -25,19 +22,14 @@ class TokenUtilTest {
     void generateToken_DifferentUserIds_DifferentTokens() {
         String token1 = TokenUtil.generateToken(1L);
         String token2 = TokenUtil.generateToken(2L);
-
         assertNotEquals(token1, token2);
     }
-
-    // ==================== parseUserId ====================
 
     @Test
     @DisplayName("parseUserId-有效token-正确解析userId")
     void parseUserId_ValidToken_ReturnsUserId() {
         String token = TokenUtil.generateToken(42L);
-
         Long userId = TokenUtil.parseUserId(token);
-
         assertEquals(42L, userId);
     }
 
@@ -58,37 +50,28 @@ class TokenUtilTest {
     void parseUserId_NoBearerPrefix_StillParses() {
         String token = TokenUtil.generateToken(7L);
         String withoutPrefix = token.substring("Bearer ".length());
-
         Long userId = TokenUtil.parseUserId(withoutPrefix);
-
         assertEquals(7L, userId);
     }
 
     @Test
-    @DisplayName("parseUserId-非法base64-返回null")
-    void parseUserId_InvalidBase64_ReturnsNull() {
-        Long userId = TokenUtil.parseUserId("Bearer !!!invalid!!!");
-        assertNull(userId);
+    @DisplayName("parseUserId-非法token-返回null")
+    void parseUserId_InvalidToken_ReturnsNull() {
+        assertNull(TokenUtil.parseUserId("Bearer !!!invalid!!!"));
     }
 
     @Test
-    @DisplayName("parseUserId-格式错误(缺少冒号)-返回null")
-    void parseUserId_MalformedPayload_ReturnsNull() {
-        String badToken = "Bearer " + java.util.Base64.getEncoder()
-                .encodeToString("justOnePart".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-
-        Long userId = TokenUtil.parseUserId(badToken);
-
-        assertNull(userId);
+    @DisplayName("parseUserId-伪造token-返回null")
+    void parseUserId_ForgedToken_ReturnsNull() {
+        // JWT 带签名的伪造 token，parseUserId 应返回 null
+        String forged = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5OTkifQ.fake";
+        assertNull(TokenUtil.parseUserId(forged));
     }
-
-    // ==================== isTokenValid ====================
 
     @Test
     @DisplayName("isTokenValid-刚生成的token-返回true")
     void isTokenValid_FreshToken_ReturnsTrue() {
         String token = TokenUtil.generateToken(1L);
-
         assertTrue(TokenUtil.isTokenValid(token));
     }
 
@@ -105,34 +88,25 @@ class TokenUtilTest {
     }
 
     @Test
-    @DisplayName("isTokenValid-过期token(8天前)-返回false")
-    void isTokenValid_ExpiredToken_ReturnsFalse() {
-        long eightDaysAgo = System.currentTimeMillis() - 8L * 24 * 60 * 60 * 1000;
-        String payload = "1:" + eightDaysAgo;
-        String expiredToken = "Bearer " + java.util.Base64.getEncoder()
-                .encodeToString(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-
-        assertFalse(TokenUtil.isTokenValid(expiredToken));
-    }
-
-    @Test
-    @DisplayName("isTokenValid-6天前的token-仍在有效期内")
-    void isTokenValid_SixDaysOld_ReturnsTrue() {
-        long sixDaysAgo = System.currentTimeMillis() - 6L * 24 * 60 * 60 * 1000;
-        String payload = "1:" + sixDaysAgo;
-        String validToken = "Bearer " + java.util.Base64.getEncoder()
-                .encodeToString(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-
-        assertTrue(TokenUtil.isTokenValid(validToken));
-    }
-
-    @Test
     @DisplayName("isTokenValid-非法token-返回false")
     void isTokenValid_InvalidToken_ReturnsFalse() {
         assertFalse(TokenUtil.isTokenValid("garbage"));
     }
 
-    // ==================== 往返测试 ====================
+    @Test
+    @DisplayName("isTokenValid-伪造token-返回false")
+    void isTokenValid_ForgedToken_ReturnsFalse() {
+        String forged = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.forged_signature";
+        assertFalse(TokenUtil.isTokenValid(forged));
+    }
+
+    @Test
+    @DisplayName("parseUserId-伪造的base64 token-返回null")
+    void parseUserId_ForgedBase64Token_ReturnsNull() {
+        String badToken = "Bearer " + java.util.Base64.getEncoder()
+                .encodeToString("123:99999999".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertNull(TokenUtil.parseUserId(badToken));
+    }
 
     @Test
     @DisplayName("往返测试-生成token后解析-得到原始userId")
@@ -140,7 +114,7 @@ class TokenUtilTest {
         Long original = 100L;
         String token = TokenUtil.generateToken(original);
         Long parsed = TokenUtil.parseUserId(token);
-
         assertEquals(original, parsed);
+        assertTrue(TokenUtil.isTokenValid(token));
     }
 }

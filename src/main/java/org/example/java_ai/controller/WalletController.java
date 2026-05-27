@@ -23,7 +23,6 @@ import java.util.Map;
 public class WalletController {
 
     private final UserWalletService walletService;
-    private final JdbcTemplate jdbcTemplate;
 
     /**
      * 获取钱包信息
@@ -73,17 +72,9 @@ public class WalletController {
         
         RechargeRecord record = walletService.recharge(userId, amount, rechargeType, remark);
         
-        // TODO: 这里应该返回第三方支付链接或二维码
-        // 目前简化处理，直接调用确认充值成功
-        
-        // 模拟支付成功回调
-        boolean success = walletService.confirmRechargeSuccess(record.getTradeNo(), "MOCK_" + System.currentTimeMillis());
-        
-        if (success) {
-            return Result.success(record);
-        } else {
-            return Result.error("充值失败");
-        }
+        // 返回第三方支付链接（生产环境对接支付网关）
+        // 此处简化：直接返回充值记录，支付结果通过回调确认
+        return Result.success(record);
     }
 
     /**
@@ -95,11 +86,9 @@ public class WalletController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) Integer status) {
-        
+
         Long userId = (Long) request.getAttribute("userId");
-        
         var page = walletService.getRechargeRecords(userId, pageNum, pageSize, status);
-        
         return Result.success(page);
     }
 
@@ -111,37 +100,11 @@ public class WalletController {
             HttpServletRequest request,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        
+
         Long userId = (Long) request.getAttribute("userId");
         log.info("查询用户消费记录 - userId: {}, pageNum: {}, pageSize: {}", userId, pageNum, pageSize);
-        
-        // 查询已支付的订单作为消费记录
-        String sql = """
-            SELECT 
-                o.order_no as tradeNo,
-                o.total_amount as amount,
-                o.create_time as createTime,
-                '订单支付' as remark,
-                GROUP_CONCAT(oi.product_name SEPARATOR ', ') as products
-            FROM orders o
-            LEFT JOIN order_item oi ON o.id = oi.order_id
-            WHERE o.user_id = ? AND o.status = 1 AND o.deleted = 0
-            GROUP BY o.id, o.order_no, o.total_amount, o.create_time
-            ORDER BY o.create_time DESC
-            LIMIT ? OFFSET ?
-            """;
-        
-        int offset = (pageNum - 1) * pageSize;
-        var records = jdbcTemplate.queryForList(sql, userId, pageSize, offset);
-        
-        // 查询总数
-        String countSql = "SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 1 AND deleted = 0";
-        Long total = jdbcTemplate.queryForObject(countSql, Long.class, userId);
-        
-        Map<String, Object> result = new java.util.HashMap<>();
-        result.put("records", records);
-        result.put("total", total != null ? total : 0);
-        
-        return Result.success(result);
+
+        var records = walletService.getSpendingRecords(userId, pageNum, pageSize);
+        return Result.success(records);
     }
 }

@@ -34,6 +34,26 @@ public class GlobalExceptionHandler {
         log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
     }
+
+    /**
+     * 处理 Spring Security 认证异常
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<Void> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException e) {
+        log.warn("权限不足: {}", e.getMessage());
+        return Result.error(ResultCode.FORBIDDEN);
+    }
+
+    /**
+     * 处理 Spring Security 认证异常
+     */
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<Void> handleAuthenticationException(org.springframework.security.core.AuthenticationException e) {
+        log.warn("认证失败: {}", e.getMessage());
+        return Result.error(ResultCode.UNAUTHORIZED);
+    }
     
     /**
      * 处理参数校验异常 (@Valid)

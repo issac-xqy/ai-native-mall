@@ -47,9 +47,8 @@ public class RedisRateLimiter {
             log.warn("用户 {} 触发限流，当前计数: {}", key, count);
             return false;
         } catch (Exception e) {
-            log.error("Redis限流检查失败，降级为允许请求", e);
-            // Redis异常时降级为允许请求
-            return true;
+            log.error("Redis限流检查失败，降级为拒绝请求", e);
+            return false;
         }
     }
 
@@ -85,7 +84,7 @@ public class RedisRateLimiter {
             return true;
         } catch (Exception e) {
             log.error("Redis滑动窗口限流检查失败", e);
-            return true;
+            return false;
         }
     }
 

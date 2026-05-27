@@ -46,4 +46,9 @@ public interface UserWalletService extends IService<UserWallet> {
      * 分页查询充值记录
      */
     Page<RechargeRecord> getRechargeRecords(Long userId, Integer pageNum, Integer pageSize, Integer status);
+
+    /**
+     * 查询消费记录
+     */
+    java.util.Map<String, Object> getSpendingRecords(Long userId, Integer pageNum, Integer pageSize);
 }

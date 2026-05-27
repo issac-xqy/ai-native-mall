@@ -12,13 +12,13 @@ public interface OrderService {
 
     Map<String, Object> payOrder(Long userId, String orderNo, String paymentMethod);
 
-    Map<String, Object> confirmOrder(String orderNo);
+    Map<String, Object> confirmOrder(Long userId, String orderNo);
 
-    Map<String, Object> shipOrder(String orderNo, String logisticsCompany, String trackingNo);
+    Map<String, Object> shipOrder(Long userId, String orderNo, String logisticsCompany, String trackingNo);
 
-    Map<String, Object> refundOrder(String orderNo, String reason);
+    Map<String, Object> refundOrder(Long userId, String orderNo, String reason);
 
-    Map<String, Object> cancelOrder(String orderNo);
+    Map<String, Object> cancelOrder(Long userId, String orderNo);
 
     List<Map<String, Object>> listOrders(Long userId, Integer status);
 }

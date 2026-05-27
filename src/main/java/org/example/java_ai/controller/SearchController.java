@@ -84,22 +84,17 @@ public class SearchController {
     
     /**
      * 重建商品向量索引（管理员接口）
-     * 
-     * @return 操作结果
      */
     @PostMapping("/rebuild-index")
     public Result<Map<String, Object>> rebuildIndex() {
         log.info("收到重建索引请求");
-        
         try {
-            // TODO: 这里应该从数据库查询所有商品，然后批量索引
-            // 为了演示，先返回成功
-            
+            List<Product> allProducts = productService.list();
+            semanticSearchService.batchIndexProducts(allProducts);
             return Result.success(Map.of(
                 "message", "索引重建任务已启动",
-                "status", "processing"
+                "totalProducts", allProducts.size()
             ));
-            
         } catch (Exception e) {
             log.error("重建索引失败", e);
             return Result.error("索引重建失败: " + e.getMessage());

@@ -3,10 +3,11 @@ package org.example.java_ai.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.java_ai.common.Result;
+import org.example.java_ai.common.ResultCode;
 import org.example.java_ai.entity.User;
+import org.example.java_ai.exception.BusinessException;
 import org.example.java_ai.service.UserService;
-import org.example.java_ai.util.TokenUtil;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -20,70 +21,63 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) {
-        try {
-            String username = request.get("username");
-            String password = request.get("password");
-            String token = userService.login(username, password);
-            User user = userService.getUserByUsername(username);
-            return ResponseEntity.ok(Map.of(
-                    "success", true, "message", "登录成功", "token", token,
-                    "userInfo", Map.of(
-                            "id", user.getId(), "username", user.getUsername(),
-                            "phone", user.getPhone() != null ? user.getPhone() : "",
-                            "nickname", user.getNickname() != null ? user.getNickname() : user.getUsername(),
-                            "email", user.getEmail() != null ? user.getEmail() : "")));
-        } catch (RuntimeException e) {
-            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
-        }
+    public Result<Map<String, Object>> login(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
+        String token = userService.login(username, password);
+        User user = userService.getUserByUsername(username);
+        return Result.success(Map.of(
+                "token", token,
+                "userInfo", Map.of(
+                        "id", user.getId(),
+                        "username", user.getUsername(),
+                        "phone", user.getPhone() != null ? user.getPhone() : "",
+                        "nickname", user.getNickname() != null ? user.getNickname() : user.getUsername(),
+                        "email", user.getEmail() != null ? user.getEmail() : ""
+                )));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> request) {
-        try {
-            userService.register(request.get("username"), request.get("password"),
-                    request.get("username"), request.get("phone"), request.get("email"));
-            return ResponseEntity.ok(Map.of("success", true, "message", "注册成功，请使用该账号登录"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
-        }
+    public Result<Map<String, Object>> register(@RequestBody Map<String, String> request) {
+        userService.register(
+                request.get("username"),
+                request.get("password"),
+                request.get("nickname"),
+                request.get("phone"),
+                request.get("email"));
+        return Result.success(Map.of("message", "注册成功，请使用该账号登录"));
     }
 
     @GetMapping("/info")
-    public ResponseEntity<Map<String, Object>> getUserInfo(HttpServletRequest servletRequest,
-            @RequestHeader(value = "Authorization", required = false) String token) {
-        if (token == null || token.isEmpty()) {
-            return ResponseEntity.ok(Map.of("success", false, "message", "未登录"));
-        }
-        Long userId = (Long) servletRequest.getAttribute("userId");
+    public Result<Map<String, Object>> getUserInfo(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
-            return ResponseEntity.ok(Map.of("success", false, "message", "未登录"));
+            return Result.error(ResultCode.UNAUTHORIZED);
         }
         User user = userService.getById(userId);
         if (user == null) {
-            return ResponseEntity.ok(Map.of("success", false, "message", "用户不存在"));
+            return Result.error(ResultCode.NOT_FOUND);
         }
-        return ResponseEntity.ok(Map.of("success", true, "data", Map.of(
-                "id", user.getId(), "username", user.getUsername(),
-                "phone", user.getPhone(), "nickname", user.getNickname(), "email", user.getEmail())));
+        return Result.success(Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "phone", user.getPhone(),
+                "nickname", user.getNickname(),
+                "email", user.getEmail()));
     }
 
     @PutMapping("/info")
-    public ResponseEntity<Map<String, Object>> updateUserInfo(HttpServletRequest servletRequest,
-            @RequestHeader(value = "Authorization", required = false) String token,
-            @RequestBody Map<String, String> request) {
-        if (token == null || token.isEmpty()) {
-            return ResponseEntity.ok(Map.of("success", false, "message", "未登录"));
-        }
-        Long userId = (Long) servletRequest.getAttribute("userId");
+    public Result<Map<String, Object>> updateUserInfo(HttpServletRequest request,
+            @RequestBody Map<String, String> body) {
+        Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
-            return ResponseEntity.ok(Map.of("success", false, "message", "未登录"));
+            return Result.error(ResultCode.UNAUTHORIZED);
         }
         User update = new User();
-        update.setNickname(request.get("nickname"));
-        update.setPhone(request.get("phone"));
-        update.setEmail(request.get("email"));
+        update.setNickname(body.get("nickname"));
+        update.setPhone(body.get("phone"));
+        update.setEmail(body.get("email"));
         userService.updateUserInfo(userId, update);
-        return ResponseEntity.ok(Map.of("success", true, "message", "更新成功"));
+        return Result.success(Map.of("message", "更新成功"));
     }
 }

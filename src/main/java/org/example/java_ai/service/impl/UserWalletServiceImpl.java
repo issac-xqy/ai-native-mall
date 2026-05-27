@@ -26,6 +26,7 @@ import java.util.UUID;
 public class UserWalletServiceImpl extends ServiceImpl<UserWalletMapper, UserWallet> implements UserWalletService {
 
     private final RechargeRecordMapper rechargeRecordMapper;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     public UserWallet getOrCreateWallet(Long userId) {
@@ -90,39 +91,28 @@ public class UserWalletServiceImpl extends ServiceImpl<UserWalletMapper, UserWal
     @Transactional(rollbackFor = Exception.class)
     public boolean confirmRechargeSuccess(String tradeNo, String outTradeNo) {
         log.info("确认充值成功 - tradeNo: {}, outTradeNo: {}", tradeNo, outTradeNo);
-        
-        // 1. 查找充值记录
+
+        // 原子更新充值记录状态（防止重复入账）
         LambdaQueryWrapper<RechargeRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(RechargeRecord::getTradeNo, tradeNo);
-        
+        wrapper.eq(RechargeRecord::getTradeNo, tradeNo)
+               .eq(RechargeRecord::getStatus, 0);
+
         RechargeRecord record = rechargeRecordMapper.selectOne(wrapper);
-        
         if (record == null) {
-            log.error("充值记录不存在 - tradeNo: {}", tradeNo);
+            log.warn("充值记录不存在或已处理 - tradeNo: {}", tradeNo);
             return false;
         }
-        
-        if (record.getStatus() != 0) {
-            log.warn("充值记录状态异常 - tradeNo: {}, status: {}", tradeNo, record.getStatus());
-            return false;
-        }
-        
-        // 2. 更新充值记录状态
-        record.setStatus(1); // 充值成功
+
+        record.setStatus(1);
         record.setOutTradeNo(outTradeNo);
         record.setUpdateTime(LocalDateTime.now());
         rechargeRecordMapper.updateById(record);
-        
-        // 3. 更新钱包余额
-        UserWallet wallet = getOrCreateWallet(record.getUserId());
-        wallet.setBalance(wallet.getBalance().add(record.getAmount()));
-        wallet.setTotalRecharge(wallet.getTotalRecharge().add(record.getAmount()));
-        wallet.setUpdateTime(LocalDateTime.now());
-        updateById(wallet);
-        
-        log.info("✅ 充值成功 - userId: {}, amount: {}, newBalance: {}", 
-                wallet.getUserId(), record.getAmount(), wallet.getBalance());
-        
+
+        // 原子增加余额（无并发超扣风险）
+        getOrCreateWallet(record.getUserId());
+        baseMapper.refund(record.getUserId(), record.getAmount(), LocalDateTime.now());
+
+        log.info("充值成功 - userId: {}, amount: {}", record.getUserId(), record.getAmount());
         return true;
     }
 
@@ -130,47 +120,26 @@ public class UserWalletServiceImpl extends ServiceImpl<UserWalletMapper, UserWal
     @Transactional(rollbackFor = Exception.class)
     public boolean deductBalance(Long userId, BigDecimal amount, String remark) {
         log.info("消费扣款 - userId: {}, amount: {}", userId, amount);
-        
-        UserWallet wallet = getOrCreateWallet(userId);
-        
-        // 检查余额是否充足
-        if (wallet.getBalance().compareTo(amount) < 0) {
-            log.warn("余额不足 - userId: {}, balance: {}, amount: {}", userId, wallet.getBalance(), amount);
-            return false;
+        int affected = baseMapper.deductBalance(userId, amount, LocalDateTime.now());
+        if (affected > 0) {
+            log.info("扣款成功 - userId: {}, amount: {}", userId, amount);
+            return true;
         }
-        
-        // 扣款
-        wallet.setBalance(wallet.getBalance().subtract(amount));
-        wallet.setTotalSpent(wallet.getTotalSpent().add(amount));
-        wallet.setUpdateTime(LocalDateTime.now());
-        
-        boolean success = updateById(wallet);
-        
-        if (success) {
-            log.info("✅ 扣款成功 - userId: {}, amount: {}, newBalance: {}", userId, amount, wallet.getBalance());
-        }
-        
-        return success;
+        log.warn("余额不足或扣款失败 - userId: {}, amount: {}", userId, amount);
+        return false;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean refund(Long userId, BigDecimal amount, String remark) {
         log.info("退款 - userId: {}, amount: {}", userId, amount);
-        
-        UserWallet wallet = getOrCreateWallet(userId);
-        
-        // 退款到余额
-        wallet.setBalance(wallet.getBalance().add(amount));
-        wallet.setUpdateTime(LocalDateTime.now());
-        
-        boolean success = updateById(wallet);
-        
-        if (success) {
-            log.info("✅ 退款成功 - userId: {}, amount: {}, newBalance: {}", userId, amount, wallet.getBalance());
+        getOrCreateWallet(userId);
+        int affected = baseMapper.refund(userId, amount, LocalDateTime.now());
+        if (affected > 0) {
+            log.info("退款成功 - userId: {}, amount: {}", userId, amount);
+            return true;
         }
-        
-        return success;
+        return false;
     }
 
     @Override
@@ -189,5 +158,33 @@ public class UserWalletServiceImpl extends ServiceImpl<UserWalletMapper, UserWal
         wrapper.orderByDesc(RechargeRecord::getCreateTime);
         
         return rechargeRecordMapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public java.util.Map<String, Object> getSpendingRecords(Long userId, Integer pageNum, Integer pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        String sql = """
+            SELECT
+                o.order_no as tradeNo,
+                o.total_amount as amount,
+                o.create_time as createTime,
+                '订单支付' as remark,
+                GROUP_CONCAT(oi.product_name SEPARATOR ', ') as products
+            FROM orders o
+            LEFT JOIN order_item oi ON o.id = oi.order_id
+            WHERE o.user_id = ? AND o.status = 1 AND o.deleted = 0
+            GROUP BY o.id, o.order_no, o.total_amount, o.create_time
+            ORDER BY o.create_time DESC
+            LIMIT ? OFFSET ?
+            """;
+        var records = jdbcTemplate.queryForList(sql, userId, pageSize, offset);
+        Long total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 1 AND deleted = 0",
+                Long.class, userId);
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("records", records);
+        result.put("total", total != null ? total : 0);
+        return result;
     }
 }

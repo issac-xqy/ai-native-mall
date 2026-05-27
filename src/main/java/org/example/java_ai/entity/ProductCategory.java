@@ -5,10 +5,8 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
-/**
- * 商品分类实体类
- */
 @Data
 @TableName("product_category")
 public class ProductCategory implements Serializable {
@@ -36,4 +34,8 @@ public class ProductCategory implements Serializable {
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    /** 子分类（仅内存树形结构使用，不映射数据库） */
+    @TableField(exist = false)
+    private List<ProductCategory> children;
 }

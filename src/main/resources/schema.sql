@@ -194,7 +194,41 @@ CREATE TABLE IF NOT EXISTS `user_address` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收货地址表';
 
 -- ==========================================
--- 10. AI知识库文档表
+-- 10. AI监控日志表
+-- ==========================================
+CREATE TABLE IF NOT EXISTS `ai_monitor_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `session_id` VARCHAR(100) DEFAULT NULL COMMENT '会话ID',
+  `user_id` VARCHAR(100) DEFAULT NULL COMMENT '用户ID',
+  `question` VARCHAR(500) DEFAULT NULL COMMENT '用户问题',
+  `answer` VARCHAR(2000) DEFAULT NULL COMMENT 'AI回复',
+  `response_time` BIGINT DEFAULT 0 COMMENT '响应时间(ms)',
+  `response_level` VARCHAR(20) DEFAULT 'green' COMMENT '响应等级: green/orange/red',
+  `is_error` TINYINT DEFAULT 0 COMMENT '是否错误: 0-否 1-是',
+  `error_type` VARCHAR(100) DEFAULT NULL COMMENT '错误类型',
+  `is_missing_knowledge` TINYINT DEFAULT 0 COMMENT '是否缺少知识: 0-否 1-是',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_session_id` (`session_id`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI监控日志表';
+
+-- ==========================================
+-- 11. 商品浏览记录表（AI推荐用）
+-- ==========================================
+CREATE TABLE IF NOT EXISTS `product_view_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
+  `product_id` BIGINT NOT NULL COMMENT '商品ID',
+  `category_id` BIGINT DEFAULT NULL COMMENT '分类ID',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '浏览时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_product_id` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品浏览记录表';
+
+-- ==========================================
+-- 12. AI知识库文档表
 -- ==========================================
 CREATE TABLE IF NOT EXISTS `ai_knowledge_document` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '文档ID',
@@ -221,12 +255,12 @@ CREATE TABLE IF NOT EXISTS `ai_knowledge_document` (
 -- ==========================================
 
 -- 初始管理员账号（密码: admin123，BCrypt加密）
-INSERT INTO `sys_user` (`username`, `password`, `nickname`, `phone`, `email`, `status`) VALUES
+INSERT IGNORE INTO `sys_user` (`username`, `password`, `nickname`, `phone`, `email`, `status`) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '管理员', '13800138000', 'admin@example.com', 1),
 ('test_user', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '测试用户', '13900139000', 'test@example.com', 1);
 
 -- 商品分类
-INSERT INTO `product_category` (`name`, `parent_id`, `sort_order`) VALUES
+INSERT IGNORE INTO `product_category` (`name`, `parent_id`, `sort_order`) VALUES
 ('手机数码', 0, 1),
 ('电脑办公', 0, 2),
 ('家用电器', 0, 3),
@@ -238,7 +272,7 @@ INSERT INTO `product_category` (`name`, `parent_id`, `sort_order`) VALUES
 -- ==========================================
 
 -- 分类1：手机数码（25个）
-INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
+INSERT IGNORE INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
 ('iPhone 15 Pro Max', 1, 9999.00, 10999.00, 80, 1250, 'Apple iPhone 15 Pro Max，A17 Pro芯片，钛金属边框，4800万像素三摄系统', '{"屏幕": "6.7英寸 OLED", "处理器": "A17 Pro", "内存": "8GB", "存储": "256GB", "摄像头": "4800万主摄+1200万超广角+1200万长焦"}', 1),
 ('iPhone 15', 1, 5999.00, 6999.00, 150, 2300, 'Apple iPhone 15，A16芯片，灵动岛设计，4800万像素主摄', '{"屏幕": "6.1英寸 OLED", "处理器": "A16", "内存": "6GB", "存储": "128GB", "摄像头": "4800万主摄+1200万超广角"}', 1),
 ('三星Galaxy S24 Ultra', 1, 9699.00, 10999.00, 60, 890, '三星Galaxy S24 Ultra，骁龙8 Gen 3，S Pen手写笔，2亿像素', '{"屏幕": "6.8英寸 AMOLED", "处理器": "骁龙8 Gen 3", "内存": "12GB", "存储": "256GB", "摄像头": "2亿主摄+5000万长焦+1000万长焦+1200万超广角"}', 1),
@@ -266,7 +300,7 @@ INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`
 ('华为Mate X5', 1, 12999.00, 13999.00, 20, 320, '华为Mate X5，麒麟9000S，超可靠玄武架构，双向北斗卫星消息', '{"屏幕": "7.85英寸 OLED(展开)/6.4英寸(折叠)", "处理器": "麒麟9000S", "内存": "12GB", "存储": "256GB", "摄像头": "5000万主摄+1300万超广角+1200万长焦"}', 1);
 
 -- 分类2：电脑办公（25个）
-INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
+INSERT IGNORE INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
 ('MacBook Pro 14英寸 M3 Pro', 2, 16999.00, 18999.00, 40, 580, 'Apple MacBook Pro 14英寸，M3 Pro芯片，18GB内存，512GB存储', '{"屏幕": "14.2英寸 Liquid Retina XDR", "芯片": "M3 Pro", "内存": "18GB", "存储": "512GB SSD", "电池": "最长17小时"}', 1),
 ('MacBook Pro 16英寸 M3 Max', 2, 27999.00, 29999.00, 20, 230, 'Apple MacBook Pro 16英寸，M3 Max芯片，36GB内存，1TB存储', '{"屏幕": "16.2英寸 Liquid Retina XDR", "芯片": "M3 Max", "内存": "36GB", "存储": "1TB SSD", "电池": "最长22小时"}', 1),
 ('MacBook Air 13英寸 M3', 2, 8999.00, 9999.00, 80, 1800, 'Apple MacBook Air 13英寸，M3芯片，8GB内存，256GB存储，轻薄便携', '{"屏幕": "13.6英寸 Liquid Retina", "芯片": "M3", "内存": "8GB", "存储": "256GB SSD", "重量": "1.24kg"}', 1),
@@ -294,7 +328,7 @@ INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`
 ('AOC 27英寸4K显示器', 2, 1999.00, 2499.00, 100, 2300, 'AOC 27英寸4K IPS显示器，99% sRGB色域，Type-C接口', '{"屏幕": "27英寸 4K IPS", "色域": "99% sRGB", "刷新率": "60Hz", "接口": "HDMI+DP+Type-C", "亮度": "350nit"}', 1);
 
 -- 分类3：家用电器（25个）
-INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
+INSERT IGNORE INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
 ('戴森V12 Detect Slim', 3, 3990.00, 4590.00, 150, 3200, '戴森V12 Detect Slim无绳吸尘器，激光探测技术，150AW强劲吸力', '{"吸力": "150AW", "续航": "60分钟", "尘杯容量": "0.35L", "重量": "2.2kg", "噪音": "78dB"}', 1),
 ('戴森V15 Detect', 3, 5290.00, 5990.00, 80, 1800, '戴森V15 Detect无绳吸尘器，激光探测+压电式传感器，240AW吸力', '{"吸力": "240AW", "续航": "60分钟", "尘杯容量": "0.76L", "重量": "3.1kg", "噪音": "82dB"}', 1),
 ('戴森吹风机HD15', 3, 2990.00, 3490.00, 100, 5600, '戴森Supersonic吹风机，智能温控，负离子护发，快速干发', '{"功率": "1600W", "风速": "4档", "温度": "3档", "重量": "635g", "线长": "2.7m"}', 1),
@@ -322,7 +356,7 @@ INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`
 ('海尔洗衣机EG100MATE81', 3, 3999.00, 4599.00, 40, 2300, '海尔10公斤滚筒洗衣机，直驱变频，蒸汽除菌', '{"容量": "10kg", "类型": "滚筒", "转速": "1400转", "能效": "一级", "功能": "蒸汽除菌"}', 1);
 
 -- 分类4：服装鞋帽（15个）
-INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
+INSERT IGNORE INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
 ('优衣库UT印花T恤', 4, 79.00, 99.00, 500, 12000, '优衣库UT系列印花T恤，纯棉面料，舒适透气，多种图案可选', '{"材质": "100%棉", "版型": "宽松", "颜色": "多色", "尺码": "XS-XXL", "产地": "中国"}', 1),
 ('耐克Air Force 1', 4, 749.00, 899.00, 200, 8900, '耐克Air Force 1经典款运动鞋，皮革鞋面，Air缓震', '{"材质": "皮革+橡胶", "鞋底": "Air缓震", "颜色": "白/黑", "尺码": "36-46", "产地": "越南"}', 1),
 ('阿迪达斯 Ultraboost 23', 4, 1299.00, 1499.00, 120, 4500, '阿迪达斯Ultraboost 23跑鞋，Boost缓震，Primeknit鞋面', '{"材质": "Primeknit编织", "鞋底": "Boost", "颜色": "多色", "尺码": "36-47", "产地": "印尼"}', 1),
@@ -340,7 +374,7 @@ INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`
 ('蕉内500E内裤套装', 4, 129.00, 159.00, 400, 15000, '蕉内500E无感标签内裤，莫代尔面料，3条装', '{"材质": "莫代尔", "款式": "平角/三角", "数量": "3条", "尺码": "M-XXL", "产地": "中国"}', 1);
 
 -- 分类5：食品饮料（15个）
-INSERT INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
+INSERT IGNORE INTO `product` (`name`, `category_id`, `price`, `original_price`, `stock`, `sales`, `description`, `specs`, `status`) VALUES
 ('三只松鼠坚果礼盒', 5, 129.00, 169.00, 300, 18000, '三只松鼠坚果礼盒，8种坚果混合装，年货送礼首选', '{"规格": "1495g", "种类": "8种坚果", "保质期": "180天", "储存": "阴凉干燥", "产地": "安徽"}', 1),
 ('良品铺子猪肉脯', 5, 39.90, 49.90, 500, 25000, '良品铺子猪肉脯，靖江风味，独立小包装', '{"规格": "200g", "口味": "蜜汁/香辣", "保质期": "9个月", "储存": "常温", "产地": "江苏"}', 1),
 ('百草味每日坚果', 5, 89.90, 109.90, 250, 15000, '百草味每日坚果，7种坚果+3种果干，30天装', '{"规格": "750g(25g×30包)", "种类": "7坚果+3果干", "保质期": "150天", "储存": "阴凉干燥", "产地": "浙江"}', 1),

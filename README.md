@@ -6,7 +6,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![LangChain4j](https://img.shields.io/badge/LangChain4j-0.36.2-purple.svg)](https://docs.langchain4j.dev/)
 [![Vue](https://img.shields.io/badge/Vue-3.4-42b883.svg)](https://vuejs.org/)
-[![Tests](https://img.shields.io/badge/tests-151%20passed-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-172%20passed-success.svg)]()
 
 ---
 
@@ -101,7 +101,7 @@ ai-native-mall/
 │   ├── common/              通用模型（Result、PageResult）
 │   ├── exception/           异常处理
 │   └── util/                工具类
-├── src/test/java/.../       151 个测试（单元 + 集成 + 接口）
+├── src/test/java/.../       152 个测试（单元 + 集成 + 接口）
 ├── src/main/resources/
 │   ├── application.yml      应用配置
 │   ├── schema.sql           建库脚本
@@ -119,12 +119,9 @@ ai-native-mall/
 ## 测试
 
 ```bash
-# 全部单元测试 + 接口测试（151 个）
-./mvnw test
-
-# E2E 浏览器测试（需要先启动后端和前端）
-cd web-client
-npm run test:e2e
+./mvnw test                    # 后端 152 个测试
+cd web-client && npm test      # 前端 20 个测试
+npm run test:e2e               # E2E 13 个测试
 ```
 
 **测试分层**
@@ -132,11 +129,12 @@ npm run test:e2e
 | 层级 | 数量 | 技术 |
 |------|:--:|------|
 | Util | 39 | JUnit 5 |
-| Mapper | 18 | H2 + MyBatis Plus Test |
-| Service | 37 | Mockito |
+| Mapper | 28 | H2 + MyBatis Plus Test |
+| Service | 42 | Mockito |
 | Controller | 43 | MockMvc |
 | E2E | 13 | Playwright + Edge |
-| **合计** | **151** | |
+| 前端 | 20 | Vitest |
+| **合计** | **172** | |
 
 ---
 

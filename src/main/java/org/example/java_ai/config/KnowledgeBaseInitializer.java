@@ -10,6 +10,7 @@ import org.example.java_ai.mapper.ProductMapper;
 import org.example.java_ai.service.ai.SmartCustomerService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@Profile("!test")
 public class KnowledgeBaseInitializer implements CommandLineRunner {
 
     private final ProductMapper productMapper;

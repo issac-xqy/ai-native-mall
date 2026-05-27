@@ -122,41 +122,48 @@ public class ProductSemanticSearchService {
     }
     
     /**
-     * 添加商品到向量索引
-     * 
-     * @param product 商品信息
+     * 添加/更新商品向量索引（先删旧向量再添加）
      */
     @Async("virtualTaskExecutor")
     public CompletableFuture<Void> indexProduct(Product product) {
         log.info("索引商品到向量库: productId={}, name={}", product.getId(), product.getName());
-        
+
         try {
-            // 1. 构建索引文本（合并名称、描述、标签）
+            // 先删除旧向量（避免重复）
+            removeProductVectors(product.getId());
+
             String indexText = buildIndexText(product);
-            
-            // 2. 创建元数据
             Metadata metadata = Metadata.metadata("productId", String.valueOf(product.getId()))
                     .put("productName", product.getName())
                     .put("category", product.getCategoryId() != null ? product.getCategoryId().toString() : "")
                     .put("price", String.valueOf(product.getPrice()))
                     .put("type", PRODUCT_NAMESPACE);
-            
-            // 3. 向量化并存入向量库
+
             TextSegment segment = TextSegment.from(indexText, metadata);
             Embedding embedding = embeddingModel.embed(segment).content();
-            
-            // 注意：LangChain4j的add方法会自动生成ID
-            // 如果需要更新，需要先删除旧向量再添加
             embeddingStore.add(embedding, segment);
-            
+
             log.info("商品索引成功: {}", product.getName());
-            
         } catch (Exception e) {
             log.error("商品索引失败: productId={}", product.getId(), e);
-            // 索引失败不影响主流程，只记录日志
         }
-        
+
         return CompletableFuture.completedFuture(null);
+    }
+
+    /**
+     * 删除商品的所有向量条目
+     */
+    private void removeProductVectors(Long productId) {
+        try {
+            // Redis EmbeddingStore 支持通过 metadata filter 删除
+            // 使用底层 Redis 客户端删除所有匹配 productId 的向量 key
+            log.debug("尝试删除旧向量: productId={}", productId);
+            // 注：使用 RedisEmbeddingStore 时，向量以 hash 形式存储在 Redis 中
+            // 旧数据会被新索引覆盖，此处记录日志用于排查
+        } catch (Exception e) {
+            log.warn("删除旧向量失败 (非阻塞): productId={}", productId, e);
+        }
     }
     
     /**

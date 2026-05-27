@@ -1,6 +1,7 @@
 package org.example.java_ai.service;
 
 import org.example.java_ai.entity.User;
+import org.example.java_ai.exception.BusinessException;
 import org.example.java_ai.mapper.UserMapper;
 import org.example.java_ai.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.*;
@@ -26,7 +27,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl();
+        userService = new UserServiceImpl(encoder);
         ReflectionTestUtils.setField(userService, "baseMapper", userMapper);
     }
 
@@ -69,7 +70,7 @@ class UserServiceTest {
         doReturn(buildUser(1L, "existing", "老用户", "13800003333"))
                 .when(userMapper).selectOne(any(), anyBoolean());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.register("existing", "pwd", "昵称", "13800004444", "e@t.com"));
         assertEquals("用户名已存在", ex.getMessage());
     }
@@ -84,7 +85,7 @@ class UserServiceTest {
         String token = userService.login("zhangsan", "pass123");
 
         assertNotNull(token);
-        assertTrue(token.startsWith("mock-jwt-token-"));
+        assertTrue(token.startsWith("Bearer "));
     }
 
     @Test
@@ -92,7 +93,7 @@ class UserServiceTest {
     void login_UserNotFound_ThrowsException() {
         doReturn(null).when(userMapper).selectOne(any(), anyBoolean());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.login("nobody", "pass"));
         assertEquals("用户名或密码错误", ex.getMessage());
     }
@@ -104,7 +105,7 @@ class UserServiceTest {
         mockUser.setPassword(encoder.encode("correct_pwd"));
         doReturn(mockUser).when(userMapper).selectOne(any(), anyBoolean());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.login("zhangsan", "wrong_pwd"));
         assertEquals("用户名或密码错误", ex.getMessage());
     }
@@ -117,7 +118,7 @@ class UserServiceTest {
         mockUser.setStatus(0);
         doReturn(mockUser).when(userMapper).selectOne(any(), anyBoolean());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.login("zhangsan", "pass"));
         assertEquals("账号已被禁用", ex.getMessage());
     }
@@ -143,7 +144,7 @@ class UserServiceTest {
     void updateUserInfo_UserNotExists_ThrowsException() {
         doReturn(null).when(userMapper).selectById(eq(99L));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.updateUserInfo(99L, new User()));
         assertEquals("用户不存在", ex.getMessage());
     }
@@ -166,7 +167,7 @@ class UserServiceTest {
         user.setPassword(encoder.encode("real_old"));
         doReturn(user).when(userMapper).selectById(eq(1L));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.changePassword(1L, "wrong_old", "new_pwd"));
         assertEquals("原密码错误", ex.getMessage());
     }
@@ -176,7 +177,7 @@ class UserServiceTest {
     void changePassword_UserNotExists_ThrowsException() {
         doReturn(null).when(userMapper).selectById(eq(99L));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+        BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.changePassword(99L, "old", "new"));
         assertEquals("用户不存在", ex.getMessage());
     }

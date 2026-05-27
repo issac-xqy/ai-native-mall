@@ -127,17 +127,19 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
 
         try {
+            // 获取分类名称
+            String categoryName = getCategoryName(product.getCategoryId());
+
             CompletableFuture<String> future = productOperationService.generateSeoTitle(
                 product.getName(),
-                "商品分类", // TODO: 从分类表获取
+                categoryName,
                 product.getSpecs() != null ? product.getSpecs() : ""
             );
             String seoTitle = future.get();
-            
-            // 更新商品SEO标题
+
             product.setSeoTitle(seoTitle);
             updateById(product);
-            
+
             log.info("AI生成SEO标题成功: {}", seoTitle);
             return seoTitle;
         } catch (Exception e) {
@@ -154,26 +156,59 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
 
         try {
-            // 解析规格参数
-            Map<String, String> specs = Map.of(); // TODO: 从JSON解析
-            
+            // 解析规格 JSON
+            Map<String, String> specs = parseSpecs(product.getSpecs());
+            String targetAudience = inferTargetAudience(product.getCategoryId());
+
             CompletableFuture<String> future = productOperationService.generateProductDescription(
                 product.getName(),
                 specs,
-                "目标用户" // TODO: 从商品分类推断
+                targetAudience
             );
             String description = future.get();
-            
-            // 更新商品AI描述
+
             product.setAiDescription(description);
             updateById(product);
-            
+
             log.info("AI生成商品描述成功，长度: {}", description.length());
             return description;
         } catch (Exception e) {
             log.error("生成商品描述失败", e);
             throw new RuntimeException("生成商品描述失败: " + e.getMessage());
         }
+    }
+
+    private String getCategoryName(Long categoryId) {
+        if (categoryId == null) return "综合商品";
+        try {
+            var rows = jdbcTemplate.queryForList(
+                    "SELECT name FROM product_category WHERE id = ?", categoryId);
+            return rows.isEmpty() ? "综合商品" : (String) rows.get(0).get("name");
+        } catch (Exception e) {
+            return "综合商品";
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> parseSpecs(String specsJson) {
+        if (specsJson == null || specsJson.isEmpty()) return Map.of();
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(specsJson, Map.class);
+        } catch (Exception e) {
+            return Map.of();
+        }
+    }
+
+    private String inferTargetAudience(Long categoryId) {
+        if (categoryId == null) return "大众消费者";
+        return switch (categoryId.intValue()) {
+            case 1 -> "数码爱好者";
+            case 2 -> "办公商务人士";
+            case 3 -> "家庭用户";
+            case 4 -> "时尚消费者";
+            case 5 -> "美食爱好者";
+            default -> "大众消费者";
+        };
     }
 
     @Override

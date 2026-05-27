@@ -3,36 +3,31 @@ package org.example.java_ai.service.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * 商品运营AI服务 - 自动生成SEO标题、商品描述、评论情感分析
- * 
- * 核心能力：
- * 1. SEO标题生成：基于商品特点，生成搜索引擎友好的标题
- * 2. 商品描述优化：自动生成营销文案，突出卖点
- * 3. 评论情感分析：自动提取"质量差"、"物流慢"等标签
- * 4. 关键词提取：自动提取商品核心卖点关键词
- * 
- * @author xqy
- * @since 2026-04-09
+ * 商品运营AI服务 - SEO标题生成、商品描述、评论情感分析、关联推荐
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ProductOperationService {
 
     private final ChatLanguageModel chatModel;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public ProductOperationService(ChatLanguageModel chatModel, ObjectMapper objectMapper) {
+        this.chatModel = chatModel;
+        this.objectMapper = objectMapper;
+    }
 
     /**
      * 生成SEO友好的商品标题
@@ -344,13 +339,20 @@ public class ProductOperationService {
         
         try {
             String result = chatModel.generate(prompt);
-            log.info("关联商品推荐完成");
-            
-            // TODO: 解析JSON返回列表
-            return CompletableFuture.completedFuture(java.util.List.of());
+            String cleanJson = result.trim()
+                    .replaceAll("^```json\\s*", "")
+                    .replaceAll("^```\\s*", "")
+                    .replaceAll("```$", "")
+                    .trim();
+            JsonNode idsNode = objectMapper.readTree(cleanJson);
+            List<String> ids = StreamSupport.stream(idsNode.spliterator(), false)
+                    .map(JsonNode::asText)
+                    .collect(Collectors.toList());
+            log.info("关联商品推荐完成, 推荐 {} 个", ids.size());
+            return CompletableFuture.completedFuture(ids);
         } catch (Exception e) {
             log.error("关联商品推荐失败", e);
-            return CompletableFuture.completedFuture(java.util.List.of());
+            return CompletableFuture.completedFuture(List.of());
         }
     }
 }

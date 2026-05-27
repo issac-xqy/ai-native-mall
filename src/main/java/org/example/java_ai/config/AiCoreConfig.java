@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
 
@@ -143,6 +144,7 @@ public class AiCoreConfig {
      */
     @Bean("productEmbeddingStore")
     @org.springframework.context.annotation.Primary
+    @Profile("!test")
     public EmbeddingStore<TextSegment> productEmbeddingStore() {
         log.info("初始化Redis商品知识向量数据库，维度: {}", embeddingDimension);
         
@@ -162,6 +164,7 @@ public class AiCoreConfig {
      * 配置FAQ知识向量数据库 (使用Redis存储，支持持久化)
      */
     @Bean("faqEmbeddingStore")
+    @Profile("!test")
     public EmbeddingStore<TextSegment> faqEmbeddingStore() {
         log.info("初始化Redis FAQ知识向量数据库，维度: {}", embeddingDimension);
         

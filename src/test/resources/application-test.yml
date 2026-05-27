@@ -12,16 +12,19 @@ spring:
     init:
       mode: never
 
+  # 测试环境禁用安全自动配置
+  security:
+    enabled: false
+
   # 禁用所有外部中间件
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.ai.AiAutoConfiguration
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   cloud:
-    nacos:
-      discovery:
-        enabled: false
       config:
         enabled: false
 
@@ -30,8 +33,6 @@ spring:
       host: localhost
       port: 6379
 
-  elasticsearch:
-    uris: http://localhost:9200
 
 # MyBatis Plus 配置（复用主配置的逻辑删除等设置）
 mybatis-plus:
