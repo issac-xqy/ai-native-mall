@@ -1,0 +1,24 @@
+# Staging profile — 预发布环境（只读外部服务，独立 DB）
+spring:
+  config:
+    activate:
+      on-profile: staging
+
+  datasource:
+    url: jdbc:mysql://${STAGING_DB_HOST:localhost}:${STAGING_DB_PORT:3307}/${STAGING_DB_NAME:ai_mall_staging}?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${STAGING_DB_USERNAME:root}
+    password: ${STAGING_DB_PASSWORD}
+
+  data:
+    redis:
+      host: ${STAGING_REDIS_HOST:localhost}
+      port: ${STAGING_REDIS_PORT:6379}
+
+app:
+  admin:
+    user-ids: 1
+
+logging:
+  level:
+    root: INFO
+    org.example.java_ai: DEBUG

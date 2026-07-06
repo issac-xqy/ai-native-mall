@@ -1,0 +1,6 @@
+node_modules
+node.js
+.git
+.gitignore
+*.md
+target/original-*.jar

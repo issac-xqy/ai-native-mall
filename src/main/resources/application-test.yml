@@ -1,0 +1,28 @@
+# Test profile — 测试环境
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:mysql://${TEST_DB_HOST:localhost}:${TEST_DB_PORT:3306}/${TEST_DB_NAME:ai_mall_test}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${TEST_DB_USERNAME:root}
+    password: ${TEST_DB_PASSWORD:1234}
+
+  data:
+    redis:
+      host: ${TEST_REDIS_HOST:localhost}
+      port: ${TEST_REDIS_PORT:6380}
+
+  sql:
+    init:
+      mode: always
+
+app:
+  admin:
+    user-ids: 1,2
+
+logging:
+  level:
+    root: WARN
+    org.example.java_ai: INFO
