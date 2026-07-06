@@ -11,10 +11,13 @@ nacos/
 rocketmq/
 .vite/
 
-### Node (root only, web-client has its own node_modules) ###
-/node_modules/
+### Node ###
+node_modules/
 /package.json
 /package-lock.json
+
+### Playwright MCP ###
+.playwright-mcp/
 
 ### STS ###
 .apt_generated
