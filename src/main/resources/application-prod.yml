@@ -1,0 +1,53 @@
+# ==================== 生产环境配置 ====================
+# 激活方式: SPRING_PROFILES_ACTIVE=prod
+
+server:
+  forward-headers-strategy: native  # 信任反向代理头
+
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 100
+      minimum-idle: 20
+
+  # 生产禁用 SQL 初始化
+  sql:
+    init:
+      mode: never
+
+  # 生产禁用 LangChain4j 请求/响应日志
+  langchain4j:
+    open-ai-chat-model:
+      log-requests: false
+      log-responses: false
+
+# 生产环境 Redis 连接池调大
+redisson:
+  config: |
+    singleServerConfig:
+      address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}"
+      connectionPoolSize: 128
+      connectionMinimumIdleSize: 24
+
+# 生产环境 Sentinel 接入中心
+spring.cloud.sentinel:
+  transport:
+    dashboard: ${SENTINEL_DASHBOARD:localhost:8080}
+  eager: true
+
+# 管理端点生产加固
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# 生产文件上传配置
+file:
+  upload:
+    path: ${UPLOAD_PATH:/data/uploads}
+  access:
+    url: ${FILE_ACCESS_URL:https://api.example.com/uploads}

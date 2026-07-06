@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/upload")
+@RequestMapping("/upload")
 @RequiredArgsConstructor
 public class FileUploadController {
 
@@ -100,6 +100,11 @@ public class FileUploadController {
         String ext = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(ext)) {
             return "不支持的文件类型: " + ext + "，仅支持 " + String.join(",", ALLOWED_EXTENSIONS);
+        }
+        // MIME 类型二次校验：防止改扩展名绕过
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return "文件内容类型无效: " + contentType + "，仅支持图片文件";
         }
         return null;
     }

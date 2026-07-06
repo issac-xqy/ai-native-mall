@@ -26,6 +26,9 @@ public class SecurityConfig {
     @org.springframework.beans.factory.annotation.Value("${app.admin.user-ids:1}")
     private String adminUserIds;
 
+    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:*}")
+    private String allowedOrigins;
+
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -83,7 +86,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:*"));
+        config.setAllowedOriginPatterns(List.of(allowedOrigins.split(",")));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowCredentials(true);
