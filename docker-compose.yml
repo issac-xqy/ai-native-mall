@@ -41,6 +41,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - AI_API_KEY=${AI_API_KEY:-sk-placeholder}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.deepseek.com/v1}
+      - AI_MODEL=${AI_MODEL:-deepseek-chat}
     volumes:
       - uploads-data:/app/uploads
     depends_on:
