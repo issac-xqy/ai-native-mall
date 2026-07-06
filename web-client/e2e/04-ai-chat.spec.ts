@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+const hasAI = process.env.AI_API_KEY && process.env.AI_API_KEY !== 'sk-placeholder';
+const skipAI = test.describe.configure
+  ? test.describe
+  : test.describe;
+
 test.describe('AI 智能客服', () => {
+  test.skip(!hasAI, '⚠️ AI_API_KEY 未配置，跳过 AI 对话测试');
+
   test('AI对话-发送问题并收到流式回复', async ({ page }) => {
     await page.goto('/ai-chat');
     await page.waitForLoadState('networkidle');

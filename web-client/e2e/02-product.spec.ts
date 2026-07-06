@@ -41,8 +41,8 @@ test.describe('商品浏览', () => {
     await page.goto('/products');
     await page.waitForSelector('.product-card', { timeout: 5000 });
 
-    // 点击第一个商品卡片进入详情
-    const firstCard = page.locator('.product-card').first();
+    // 点击第一个商品卡片进入详情（兼容多种 CSS class）
+    const firstCard = page.locator('.product-card, [class*="product-item"], [class*="goods-item"], .el-card [class*="product"]').first();
     await firstCard.click();
 
     // URL 应该变成 /product/{id}

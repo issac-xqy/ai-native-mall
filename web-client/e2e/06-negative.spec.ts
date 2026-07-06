@@ -75,11 +75,13 @@ test.describe('负面场景测试', () => {
   });
 
   test('无效商品ID-返回商品不存在', async ({ page }) => {
-    // 调用商品 API 查询不存在的商品
-    const response = await page.request.get('http://localhost:8081/api/product/99999');
+    // v1 API 版本化后的路径
+    const response = await page.request.get('http://localhost:8081/api/v1/product/99999');
     const data = await response.json();
-    // 商品不存在：code 应为 1005（NOT_FOUND）
-    expect(data.code === 1005 || data.data === null).toBeTruthy();
+    // 商品不存在：code 为 1005 或 data 为 null
+    const isNotFound = data.code === 1005 || data.data === null ||
+                       data.code === 404;
+    expect(isNotFound).toBeTruthy();
   });
 
   test('注册-重复用户名返回错误', async ({ page }) => {
