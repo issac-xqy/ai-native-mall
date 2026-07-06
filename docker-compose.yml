@@ -43,6 +43,7 @@ services:
       - AI_API_KEY=${AI_API_KEY:-sk-placeholder}
       - AI_BASE_URL=${AI_BASE_URL:-https://api.deepseek.com/v1}
       - AI_MODEL=${AI_MODEL:-deepseek-chat}
+      - USE_EXTERNAL_EMBEDDING=${USE_EXTERNAL_EMBEDDING:-true}
     volumes:
       - uploads-data:/app/uploads
     depends_on:

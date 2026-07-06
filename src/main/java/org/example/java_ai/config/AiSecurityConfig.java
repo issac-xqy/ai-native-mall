@@ -52,10 +52,16 @@ public class AiSecurityConfig {
         return sensitiveWordBs.replace(text);
     }
 
+    /**
+     * 是否启用了 API Key 校验（有注册的白名单 key 时才启用）
+     */
+    public boolean isApiKeyCheckEnabled() {
+        return !validApiKeys.isEmpty();
+    }
+
     public boolean validateApiKey(String apiKey) {
         if (apiKey == null || apiKey.isEmpty()) return false;
         if (!apiKey.startsWith("sk-")) return false;
-        // 必须显式注册 API Key 才能通过校验
         return validApiKeys.contains(apiKey);
     }
 
