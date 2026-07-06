@@ -29,6 +29,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Map<String, Object> createOrder(Long userId, String orderNo, List<Map<String, Object>> items) {
+        if (orderNo == null || orderNo.isEmpty()) {
+            orderNo = "ORD" + System.currentTimeMillis() + String.format("%04d", userId);
+        }
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (Map<String, Object> item : items) {
             Long productId = ((Number) item.get("productId")).longValue();
@@ -213,7 +216,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private BigDecimal toBigDecimal(Object value) {
-        if (value == null) throw new RuntimeException("价格不能为空");
+        if (value == null) return BigDecimal.ZERO;
         if (value instanceof BigDecimal bd) return bd;
         return new BigDecimal(value.toString());
     }

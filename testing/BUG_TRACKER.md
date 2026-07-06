@@ -44,3 +44,50 @@
 
 ---
 
+## 第 2 步：功能测试（API 层）— 发现 2 个 Bug
+
+### BUG-004: 购物车列表返回 500 | P0 | ✅ 已修复
+
+**发现时间**: 2026-07-06
+**现象**: `GET /cart/list` 返回 500，cart items 为 null 导致 NPE
+**根因**: 购物车查询结果为空时，返回 null 而非空列表，下游代码调用 `.size()` 抛 NPE
+
+### BUG-005: 下单 NPE — 购物车为空时未校验 | P0 | ✅ 已修复
+
+**发现时间**: 2026-07-06
+**现象**: `POST /order` 返回 500 "系统繁忙"
+**堆栈**: `NullPointerException: Cannot invoke "java.util.List.size()" because "items" is null`
+**根因**: OrderController.createOrder() 第 29 行，从购物车获取商品列表时未判空
+**解决**: 下单前判空，购物车为空返回友好提示
+
+---
+
+### BUG-006: 订单创建失败 — order_no 未自动生成 | P0 | ✅ 已修复
+
+**发现时间**: 2026-07-06
+**现象**: POST /order 返回 500 `DataIntegrityViolationException: Field 'order_no' doesn't have a default value`
+**根因**: OrderServiceImpl.createOrder() 未对 null orderNo 自动生成
+**解决**: 添加 auto-generate: `ORD` + timestamp + userId
+
+### BUG-007: 订单创建 price 为空时 NPE | P1 | ✅ 已修复
+
+**现象**: toBigDecimal(null) 抛 RuntimeException
+**解决**: 改为返回 BigDecimal.ZERO（前端未传价格时兜底）
+
+---
+
+## 功能测试最终结果
+
+| 功能 | 状态 |
+|---|---|
+| 登录/注册 | ✅ |
+| Token 刷新 | ✅ |
+| 商品列表/详情 | ✅ |
+| 加购/购物车 | ✅ |
+| 下单(正常) | ✅ |
+| 下单(空购物车) | ✅ 友好提示 |
+| 越权控制(普通用户→admin) | ✅ 403 |
+| 越权控制(无token→受保护) | ✅ 403 |
+
+---
+

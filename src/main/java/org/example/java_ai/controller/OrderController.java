@@ -26,6 +26,9 @@ public class OrderController {
         String orderNo = (String) request.get("orderNo");
         @SuppressWarnings("unchecked")
         var items = (List<Map<String, Object>>) request.get("items");
+        if (items == null || items.isEmpty()) {
+            return Result.error("购物车为空，请先添加商品");
+        }
         log.info("创建订单 orderNo={}, userId={}, items={}", orderNo, userId, items.size());
         return Result.success(orderService.createOrder(userId, orderNo, items));
     }
