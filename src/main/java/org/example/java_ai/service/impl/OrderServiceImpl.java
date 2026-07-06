@@ -2,6 +2,7 @@ package org.example.java_ai.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.java_ai.common.OrderStatus;
 import org.example.java_ai.entity.Order;
 import org.example.java_ai.entity.OrderItem;
 import org.example.java_ai.entity.UserWallet;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,7 +42,7 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderNo(orderNo);
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
-        order.setStatus(0);
+        order.setStatus(OrderStatus.CREATED.getCode());
         orderMapper.insert(order);
 
         for (Map<String, Object> item : items) {
@@ -74,7 +76,7 @@ public class OrderServiceImpl implements OrderService {
     public Map<String, Object> payOrder(Long userId, String orderNo, String paymentMethod) {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");
-        if (order.getStatus() != 0) return fail("订单已支付或状态异常");
+        if (order.getStatus() != OrderStatus.CREATED.getCode()) return fail("订单已支付或状态异常");
 
         UserWallet wallet = walletService.getOrCreateWallet(userId);
         if (wallet.getBalance().compareTo(order.getTotalAmount()) < 0) {
@@ -88,7 +90,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 原子更新订单状态
-        int updated = orderMapper.updateStatus(orderNo, 0, 1);
+        int updated = orderMapper.updateStatus(orderNo, OrderStatus.CREATED.getCode(), OrderStatus.PAID.getCode());
         if (updated == 0) {
             // 扣款成功但状态更新失败，退还余额
             walletService.refund(userId, order.getTotalAmount(), "支付失败退款-" + orderNo);
@@ -104,7 +106,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");
         if (!order.getUserId().equals(userId)) return fail("无权操作该订单");
-        int rows = orderMapper.updateStatus(orderNo, 2, 3);
+        int rows = orderMapper.updateStatus(orderNo, OrderStatus.SHIPPED.getCode(), OrderStatus.COMPLETED.getCode());
         return rows > 0 ? Map.of("success", true, "message", "确认收货成功")
                 : fail("订单状态不允许确认收货");
     }
@@ -113,8 +115,8 @@ public class OrderServiceImpl implements OrderService {
     public Map<String, Object> shipOrder(Long userId, String orderNo, String logisticsCompany, String trackingNo) {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");
-        if (order.getStatus() != 1) return fail("只有已支付订单才能发货");
-        order.setStatus(2);
+        if (order.getStatus() != OrderStatus.PAID.getCode()) return fail("只有已支付订单才能发货");
+        order.setStatus(OrderStatus.SHIPPED.getCode());
         orderMapper.updateById(order);
         log.info("发货成功 orderNo={}, company={}, tracking={}, operator={}", orderNo, logisticsCompany, trackingNo, userId);
         return Map.of("success", true, "message", "发货成功",
@@ -127,19 +129,18 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");
         if (!order.getUserId().equals(userId)) return fail("无权操作该订单");
-        if (order.getStatus() != 1 && order.getStatus() != 2) {
+        int currentStatus = order.getStatus();
+        if (currentStatus != OrderStatus.PAID.getCode() && currentStatus != OrderStatus.SHIPPED.getCode()) {
             return fail("订单状态不允许申请退款");
         }
-        if (order.getStatus() == 1 || order.getStatus() == 2) {
-            walletService.refund(order.getUserId(), order.getTotalAmount(), "订单退款-" + orderNo);
-        }
+        walletService.refund(order.getUserId(), order.getTotalAmount(), "订单退款-" + orderNo);
         List<OrderItem> items = orderItemMapper.selectByOrderId(order.getId());
         if (items != null) {
             for (OrderItem oi : items) {
                 orderMapper.restoreStock(oi.getProductId(), oi.getQuantity());
             }
         }
-        int updated = orderMapper.updateStatus(orderNo, order.getStatus(), 4);
+        int updated = orderMapper.updateStatus(orderNo, currentStatus, OrderStatus.CANCELLED.getCode());
         if (updated == 0) return fail("退款处理失败，订单状态已变更");
         log.info("退款成功 orderNo={}, reason={}", orderNo, reason);
         return Map.of("success", true, "message", "退款成功", "refundReason", reason);
@@ -151,8 +152,8 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");
         if (!order.getUserId().equals(userId)) return fail("无权操作该订单");
-        if (order.getStatus() != 0) {
-            String msg = order.getStatus() == 1 ? "已支付订单请申请退款，不允许直接取消" : "订单状态不允许取消";
+        if (order.getStatus() != OrderStatus.CREATED.getCode()) {
+            String msg = order.getStatus() == OrderStatus.PAID.getCode() ? "已支付订单请申请退款，不允许直接取消" : "订单状态不允许取消";
             return fail(msg);
         }
         List<OrderItem> items = orderItemMapper.selectByOrderId(order.getId());
@@ -161,7 +162,7 @@ public class OrderServiceImpl implements OrderService {
                 orderMapper.restoreStock(oi.getProductId(), oi.getQuantity());
             }
         }
-        orderMapper.updateStatus(orderNo, 0, 4);
+        orderMapper.updateStatus(orderNo, OrderStatus.CREATED.getCode(), OrderStatus.CANCELLED.getCode());
         return Map.of("success", true, "message", "订单已取消");
     }
 
@@ -174,6 +175,16 @@ public class OrderServiceImpl implements OrderService {
             orders = orderMapper.selectByUserId(userId);
         }
 
+        // 批量查询订单商品（修复 N+1 查询）
+        List<Long> orderIds = orders.stream().map(Order::getId).toList();
+        Map<Long, List<OrderItem>> orderItemsMap = new HashMap<>();
+        if (!orderIds.isEmpty()) {
+            List<OrderItem> allItems = orderItemMapper.selectByOrderIds(orderIds);
+            for (OrderItem item : allItems) {
+                orderItemsMap.computeIfAbsent(item.getOrderId(), k -> new ArrayList<>()).add(item);
+            }
+        }
+
         List<Map<String, Object>> result = new ArrayList<>();
         for (Order order : orders) {
             Map<String, Object> orderMap = new LinkedHashMap<>();
@@ -183,19 +194,17 @@ public class OrderServiceImpl implements OrderService {
             orderMap.put("status", order.getStatus());
             orderMap.put("createTime", order.getCreateTime());
 
-            List<OrderItem> items = orderItemMapper.selectByOrderId(order.getId());
+            List<OrderItem> items = orderItemsMap.getOrDefault(order.getId(), List.of());
             List<Map<String, Object>> itemList = new ArrayList<>();
-            if (items != null) {
-                for (OrderItem oi : items) {
-                    itemList.add(Map.of(
-                            "id", oi.getId(),
-                            "productId", oi.getProductId(),
-                            "productName", oi.getProductName() != null ? oi.getProductName() : "",
-                            "price", oi.getPrice(),
-                            "quantity", oi.getQuantity(),
-                            "totalAmount", oi.getTotalAmount()
-                    ));
-                }
+            for (OrderItem oi : items) {
+                itemList.add(Map.of(
+                        "id", oi.getId(),
+                        "productId", oi.getProductId(),
+                        "productName", oi.getProductName() != null ? oi.getProductName() : "",
+                        "price", oi.getPrice(),
+                        "quantity", oi.getQuantity(),
+                        "totalAmount", oi.getTotalAmount()
+                ));
             }
             orderMap.put("items", itemList);
             result.add(orderMap);

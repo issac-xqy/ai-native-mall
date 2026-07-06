@@ -1,48 +1,30 @@
 <template>
-  <!-- 登录页面全屏显示 -->
   <router-view v-if="isLoginPage" />
-  
-  <!-- 商城主界面 -->
   <el-container class="layout-container" v-else>
-    <el-header class="header">
-      <div class="header-content">
-        <h1 class="logo" @click="router.push('/')">智能商城</h1>
-        <el-menu
-          :default-active="activeIndex"
-          class="menu"
-          mode="horizontal"
-          router
-        >
+    <el-header class="nav-header">
+      <div class="nav-inner">
+        <div class="brand" @click="router.push('/')">
+          <span class="brand-icon">✦</span>
+          <span class="brand-text">AI Mall</span>
+        </div>
+        <el-menu :default-active="activeIndex" class="nav-menu" mode="horizontal" router>
           <el-menu-item index="/">首页</el-menu-item>
           <el-menu-item index="/products">全部商品</el-menu-item>
           <el-menu-item index="/cart">
-            购物车
-            <el-badge v-if="cartStore.totalCount > 0" :value="cartStore.totalCount" class="cart-badge" />
+            购物车<el-badge v-if="cartStore.totalCount > 0" :value="cartStore.totalCount" class="cart-badge"/>
           </el-menu-item>
           <el-menu-item index="/orders">我的订单</el-menu-item>
           <el-menu-item index="/wallet">我的钱包</el-menu-item>
           <el-menu-item index="/ai-chat">AI客服</el-menu-item>
           <el-menu-item index="/profile">个人中心</el-menu-item>
         </el-menu>
-        
-        <!-- 搜索框 -->
-        <div class="search-box">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索商品..."
-            :prefix-icon="Search"
-            clearable
-            @keyup.enter="handleSearch"
-            @clear="handleSearch"
-          />
-        </div>
-        
-        <!-- 用户信息 -->
-        <div class="user-info">
+        <div class="nav-right">
+          <el-input v-model="searchKeyword" placeholder="搜索商品..." :prefix-icon="Search" clearable class="nav-search"
+            @keyup.enter="router.push({ path: '/products', query: { keyword: searchKeyword.trim() } })"/>
           <el-dropdown v-if="userStore.isLoggedIn">
-            <span class="user-dropdown">
-              <el-avatar :size="32" style="margin-right: 8px;">{{ userStore.userInfo?.nickname?.[0] || 'U' }}</el-avatar>
-              {{ userStore.userInfo?.username || '用户' }}
+            <span class="user-badge">
+              <el-avatar :size="34" :style="{background:'var(--brand-gradient)'}">{{ userStore.userInfo?.nickname?.[0] || 'U' }}</el-avatar>
+              <span class="user-name">{{ userStore.userInfo?.username }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -52,19 +34,18 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button v-else type="primary" @click="router.push('/login')">登录</el-button>
+          <el-button v-else type="primary" round @click="router.push('/login')">登录</el-button>
         </div>
       </div>
     </el-header>
-    
-    <el-main class="main-content">
-      <ErrorBoundary>
-        <router-view />
-      </ErrorBoundary>
-    </el-main>
-    
-    <el-footer class="footer">
-      <p>© 2026 AI-Native Smart Mall - Powered by xqy</p>
+    <el-main class="main-content"><router-view /></el-main>
+    <el-footer class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col"><h4>AI Mall</h4><p>智能购物，AI驱动</p></div>
+        <div class="footer-col"><h4>服务</h4><p>AI客服</p><p>智能推荐</p></div>
+        <div class="footer-col"><h4>链接</h4><p>GitHub</p><p>关于</p></div>
+      </div>
+      <p class="footer-copy">© 2026 AI-Native Smart Mall · Powered by xqy</p>
     </el-footer>
   </el-container>
 </template>
@@ -76,24 +57,12 @@ import { useCartStore } from './stores/cart'
 import { useUserStore } from './stores/user'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import ErrorBoundary from './components/ErrorBoundary.vue'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const userStore = useUserStore()
-
 const searchKeyword = ref('')
-
-const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    router.push({
-      path: '/products',
-      query: { keyword: searchKeyword.value.trim() }
-    })
-  }
-}
-
 const activeIndex = computed(() => route.path)
 const isLoginPage = computed(() => route.path === '/login')
 
@@ -105,76 +74,36 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-.layout-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+.layout-container { min-height: 100vh; display: flex; flex-direction: column; }
 
-.header {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 0 20px;
+/* Header */
+.nav-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  padding: 0 20px; height: 64px; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.2);
 }
+.nav-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 20px; height: 100%; }
+.brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.brand-icon { font-size: 24px; color: var(--brand-secondary); animation: pulse 3s infinite; }
+.brand-text { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+.nav-menu { --el-menu-bg-color: transparent; --el-menu-text-color: #b8c7e0; --el-menu-active-color: #00CEC9; border-bottom: none !important; flex: 1; }
+.nav-menu :deep(.el-menu-item.is-active) { border-bottom: 2px solid #00CEC9 !important; font-weight: 600; }
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.nav-search { width: 200px; }
+.nav-search :deep(.el-input__wrapper) { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; box-shadow: none; }
+.nav-search :deep(.el-input__inner) { color: #fff; }
+.nav-search :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
+.user-badge { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #fff; }
+.user-name { font-size: 14px; font-weight: 500; }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
+/* Main */
+.main-content { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
 
-.logo {
-  font-size: 24px;
-  color: #409EFF;
-  margin: 0;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-
-.logo:hover {
-  opacity: 0.8;
-}
-
-.menu {
-  flex: 1;
-  border-bottom: none;
-}
-
-.search-box {
-  width: 250px;
-  margin-right: 15px;
-}
-
-.cart-badge {
-  margin-left: 5px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.user-dropdown {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 0 10px;
-}
-
-.main-content {
-  flex: 1;
-  background: #f5f7fa;
-  padding: 20px;
-}
-
-.footer {
-  background: #fff;
-  text-align: center;
-  padding: 20px;
-  color: #909399;
-}
+/* Footer */
+.site-footer { background: #1a1a2e; color: #8892b0; padding: 40px 20px 20px; margin-top: auto; }
+.footer-grid { max-width: 1200px; margin: 0 auto; display: flex; gap: 60px; margin-bottom: 24px; }
+.footer-col h4 { color: #ccd6f6; font-size: 16px; margin-bottom: 12px; }
+.footer-col p { color: #8892b0; font-size: 13px; cursor: pointer; margin-bottom: 6px; transition: color 0.2s; }
+.footer-col p:hover { color: var(--brand-secondary); }
+.footer-copy { text-align: center; font-size: 12px; color: #495670; }
 </style>

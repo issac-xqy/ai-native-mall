@@ -41,9 +41,9 @@ export async function request<T = any>(
     delete defaultHeaders['Content-Type']
   }
   
-  // 添加 Token
+  // 添加 Token（过滤掉旧版 bug 产生的无效值）
   const token = localStorage.getItem('token')
-  if (token) {
+  if (token && token !== 'undefined' && token !== 'null' && token.length > 10) {
     defaultHeaders['Authorization'] = token
   }
   
@@ -77,12 +77,10 @@ export async function request<T = any>(
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
         localStorage.removeItem('loginTime')
-        
-        // 避免在登录页重复跳转
         if (window.location.pathname !== '/login') {
-          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+          // 使用 location.href 而非 router.push（request.ts 无 Vue 上下文）
+          window.location.assign('/login?redirect=' + encodeURIComponent(window.location.pathname))
         }
-        
         throw new HttpError('登录已过期，请重新登录', 401, 'UNAUTHORIZED')
       }
       

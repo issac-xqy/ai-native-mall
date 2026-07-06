@@ -28,7 +28,7 @@ services:
       retries: 5
 
   app:
-    build: .
+    image: java_ai-app:latest
     container_name: ai-mall-app
     ports:
       - "8081:8081"
@@ -48,6 +48,22 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  web-client:
+    build: ./web-client
+    container_name: ai-mall-client
+    ports:
+      - "3001:80"
+    depends_on:
+      - app
+
+  web-admin:
+    build: ./web-admin
+    container_name: ai-mall-admin
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
 
 volumes:
   mysql-data:

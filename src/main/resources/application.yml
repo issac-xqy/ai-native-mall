@@ -56,10 +56,10 @@ spring:
       max-lifetime: 1800000
       leak-detection-threshold: 60000
   
-  # Auto execute schema.sql to initialize database
+  # Schema initialization — only on first run (embedded DB), not on every restart
   sql:
     init:
-      mode: always
+      mode: never
       schema-locations: classpath:schema.sql
       continue-on-error: true
   

@@ -1,6 +1,9 @@
 <template>
   <div class="home">
-    <!-- AI智能推荐轮播图 -->
+    <div class="hero">
+      <div class="hero-title">探索好物，发现惊喜</div>
+      <div class="hero-sub">AI 智能推荐 · 品质保障 · 极速退款</div>
+    </div>
     <AICarousel />
 
     <div class="section">
@@ -97,6 +100,8 @@ import { useCartStore } from '../stores/cart'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/user'
 import AICarousel from '../components/AICarousel.vue'
+import { get } from '../utils/request'
+import type { Product } from '../types/api'
 
 // 商品数据类型定义
 interface Product {
@@ -123,11 +128,10 @@ const topRatedProducts = ref<Product[]>([])
 
 const loadProducts = async () => {
   try {
-    // 加载热销商品
-    const response = await fetch('/api/product/top-sales?limit=10')
-    const data = await response.json()
+    const data = await get<{ success: boolean; data: Product[] }>('/api/product/top-sales?limit=10')
     if (data.success && data.data) {
       hotProducts.value = data.data
+      topSalesProducts.value = data.data
     }
   } catch (error) {
     console.error('加载商品失败', error)
@@ -136,16 +140,7 @@ const loadProducts = async () => {
 
 const loadRankings = async () => {
   try {
-    // 加载销量排行榜
-    const salesRes = await fetch('/api/product/top-sales?limit=10')
-    const salesData = await salesRes.json()
-    if (salesData.success && salesData.data) {
-      topSalesProducts.value = salesData.data
-    }
-    
-    // 加载好评排行榜
-    const ratedRes = await fetch('/api/product/top-rated?limit=10')
-    const ratedData = await ratedRes.json()
+    const ratedData = await get<{ success: boolean; data: Product[] }>('/api/product/top-rated?limit=10')
     if (ratedData.success && ratedData.data) {
       topRatedProducts.value = ratedData.data
     }
@@ -211,195 +206,63 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.home {
-  max-width: 1400px;
-  margin: 0 auto;
-}
+.home { max-width: 1400px; margin: 0 auto; }
 
-.section {
-  margin-bottom: 40px;
+/* Hero banner */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px; padding: 48px 40px; margin-bottom: 32px;
+  position: relative; overflow: hidden;
 }
+.hero::after {
+  content: ''; position: absolute; right: -40px; top: -40px;
+  width: 240px; height: 240px; background: rgba(255,255,255,0.08); border-radius: 50%;
+}
+.hero-title { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; position: relative; z-index: 1; }
+.hero-sub { font-size: 16px; color: rgba(255,255,255,0.8); position: relative; z-index: 1; }
 
+.section { margin-bottom: 40px; }
 .section h2 {
-  margin-bottom: 20px;
-  color: #303133;
+  font-size: 22px; font-weight: 700; margin-bottom: 20px; color: #2D3436;
+  padding-left: 16px; border-left: 4px solid var(--brand-primary);
 }
 
+/* Product cards */
 .product-card {
-  cursor: pointer;
-  transition: transform 0.3s;
-  margin-bottom: 20px;
+  cursor: pointer; border-radius: 12px; overflow: hidden;
+  transition: all 0.3s ease; margin-bottom: 20px;
+  border: 1px solid #f0f0f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
-
 .product-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 16px 40px rgba(108,92,231,0.12);
+  border-color: var(--brand-primary);
 }
+.product-image { width: 100%; height: 200px; object-fit: cover; transition: transform 0.4s; }
+.product-card:hover .product-image { transform: scale(1.05); }
+.product-image-wrapper { position: relative; overflow: hidden; }
+.product-info { padding: 14px; }
+.product-info h3 { font-size: 15px; margin: 0 0 8px; color: #2D3436; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.price { font-size: 20px; color: #e74c3c; font-weight: 800; }
+.original-price { color: #b2bec3; font-size: 12px; text-decoration: line-through; }
+.meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px; color: #636e72; }
 
-.product-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.product-info {
-  padding: 10px 0;
-}
-
-.product-info h3 {
-  font-size: 16px;
-  margin: 10px 0;
-  color: #303133;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.product-image-wrapper {
-  position: relative;
-  overflow: hidden;
-}
-
-.product-tags {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.price-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.original-price {
-  color: #909399;
-  font-size: 13px;
-  text-decoration: line-through;
-}
-
-.meta-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 5px;
-}
-
-.rating {
-  color: #f59e0b;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-/* 排行榜样式 */
-.ranking-section {
-  margin-bottom: 40px;
-}
-
-.ranking-card {
-  height: 100%;
-}
-
-.ranking-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.ranking-list {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.ranking-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #ebeef5;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.ranking-item:last-child {
-  border-bottom: none;
-}
-
-.ranking-item:hover {
-  background-color: #f5f7fa;
-}
-
-.rank-badge {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.rank-gold {
-  background: linear-gradient(135deg, #ffd700, #ffaa00);
-}
-
-.rank-silver {
-  background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
-}
-
-.rank-bronze {
-  background: linear-gradient(135deg, #cd7f32, #b87333);
-}
-
-.rank-normal {
-  background-color: #909399;
-}
-
-.ranking-image {
-  width: 50px;
-  height: 50px;
-  border-radius: 4px;
-  object-fit: cover;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.ranking-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.ranking-name {
-  font-size: 14px;
-  color: #303133;
-  margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ranking-price {
-  font-size: 16px;
-  color: #f56c6c;
-  font-weight: 600;
-}
-
-.ranking-sales,
-.ranking-rating {
-  font-size: 13px;
-  color: #909399;
-  white-space: nowrap;
-  margin-left: 12px;
-}
-
-.ranking-rating {
-  color: #f59e0b;
-}
+/* Rankings */
+.ranking-section { margin-bottom: 40px; }
+.ranking-card { border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+.ranking-title { font-size: 18px; font-weight: 700; }
+.ranking-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f2f6; cursor: pointer; transition: all 0.2s; }
+.ranking-item:last-child { border-bottom: none; }
+.ranking-item:hover { background: #f8f9ff; padding-left: 8px; border-radius: 8px; }
+.rank-badge { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; margin-right: 12px; flex-shrink: 0; }
+.rank-gold { background: linear-gradient(135deg, #f6d365, #fda085); font-size: 16px; }
+.rank-silver { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #2d3436; font-size: 16px; }
+.rank-bronze { background: linear-gradient(135deg, #d4a574, #a0522d); font-size: 16px; }
+.rank-normal { background: #dfe6e9; color: #636e72; }
+.ranking-image { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; margin-right: 12px; flex-shrink: 0; }
+.ranking-info { flex: 1; min-width: 0; }
+.ranking-name { font-size: 14px; font-weight: 600; color: #2D3436; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ranking-price { font-size: 16px; color: #e74c3c; font-weight: 700; }
+.ranking-sales, .ranking-rating { font-size: 12px; color: #b2bec3; white-space: nowrap; margin-left: 12px; }
 </style>

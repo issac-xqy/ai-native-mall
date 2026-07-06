@@ -210,39 +210,19 @@ const registerRules: FormRules = {
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
-  
+
   await loginFormRef.value.validate(async (valid) => {
     if (!valid) return
 
     loading.value = true
     try {
-      const response = await fetch('/api/user/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: loginForm.username,
-          password: loginForm.password
-        })
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        // 同步更新 Store 和 localStorage
-        userStore.token = data.token
-        userStore.userInfo = data.userInfo
-        userStore.loginTime = data.loginTime || Date.now()
-        
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('userInfo', JSON.stringify(data.userInfo))
-        localStorage.setItem('loginTime', String(userStore.loginTime))
-        
+      const result = await userStore.login(loginForm.username, loginForm.password)
+      if (result.success) {
         ElMessage.success('登录成功')
-        
-        // 跳转到首页或之前的页面
         const redirect = router.currentRoute.value.query.redirect as string
         router.push(redirect || '/')
       } else {
-        ElMessage.error(data.message || '登录失败')
+        ElMessage.error(result.message || '登录失败')
       }
     } catch (error) {
       ElMessage.error('登录失败，请稍后重试')
@@ -260,24 +240,18 @@ const handleRegister = async () => {
 
     loading.value = true
     try {
-      const response = await fetch('/api/user/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: registerForm.username,
-          phone: registerForm.phone,
-          email: registerForm.email,
-          password: registerForm.password
-        })
-      })
-
-      const data = await response.json()
-      if (data.success) {
+      const result = await userStore.register(
+        registerForm.username,
+        registerForm.phone,
+        registerForm.password,
+        registerForm.email || undefined
+      )
+      if (result.success) {
         ElMessage.success('注册成功，请登录')
         mode.value = 'login'
         loginForm.username = registerForm.username
       } else {
-        ElMessage.error(data.message || '注册失败')
+        ElMessage.error(result.message || '注册失败')
       }
     } catch (error) {
       ElMessage.error('注册失败，请稍后重试')

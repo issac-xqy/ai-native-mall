@@ -421,7 +421,7 @@ const loadRecentOrders = async () => {
     const userId = userStore.userInfo?.id || 1
     const data = await get<any>(`/api/order/list?userId=${userId}`)
     if (data.success) {
-      orders.value = (data.data || []).slice(0, 5)
+      orders.value = (data.data?.data || data.data || []).slice(0, 5)
     }
   } catch (error) {
     console.error('加载订单失败', error)

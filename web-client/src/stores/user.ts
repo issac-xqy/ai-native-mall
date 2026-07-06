@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { post, get } from '../utils/request'
 
 export interface UserInfo {
   id: number
@@ -11,76 +12,60 @@ export interface UserInfo {
   createTime?: string
 }
 
+const TOKEN_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000
+
 export const useUserStore = defineStore('user', () => {
-  const TOKEN_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000
-  
-  const token = ref<string>(localStorage.getItem('token') || '')
-  
-  // 安全解析 localStorage
-  const safeParse = (key: string, defaultValue: any = null) => {
+  // 过滤旧版 bug 产生的无效 token
+  const rawToken = localStorage.getItem('token') || ''
+  const token = ref<string>(rawToken === 'undefined' || rawToken === 'null' || rawToken.length < 10 ? '' : rawToken)
+  if (!token.value) localStorage.removeItem('token')
+
+  const safeJsonParse = (key: string) => {
     try {
       const item = localStorage.getItem(key)
-      if (!item || item === 'undefined' || item === 'null') return defaultValue
+      if (!item || item === 'undefined' || item === 'null') return null
       return JSON.parse(item)
-    } catch {
-      return defaultValue
-    }
+    } catch { return null }
   }
-  
-  const userInfo = ref<UserInfo | null>(safeParse('userInfo'))
-  const loginTime = ref<number>(safeParse('loginTime', 0))
+
+  const userInfo = ref<UserInfo | null>(safeJsonParse('userInfo'))
+  const loginTime = ref<number>(Number(localStorage.getItem('loginTime')) || 0)
 
   const isLoggedIn = computed(() => {
     if (!token.value) return false
-    const now = Date.now()
-    if (now - loginTime.value > TOKEN_EXPIRE_TIME) {
-      logout()
-      return false
-    }
-    return true
+    return (Date.now() - loginTime.value) <= TOKEN_EXPIRE_TIME
   })
 
   async function login(username: string, password: string) {
     try {
-      const response = await fetch('/api/user/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      })
-
-      const data = await response.json()
-      
-      if (data.success) {
-        token.value = data.token
-        userInfo.value = data.userInfo
+      const data = await post<{ success: boolean; message?: string; data: { token: string; userInfo: UserInfo } }>(
+        '/api/user/login',
+        { username, password }
+      )
+      if (data.success && data.data?.token) {
+        token.value = data.data.token
+        userInfo.value = data.data.userInfo
         loginTime.value = Date.now()
-        
-        // 保存到localStorage
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('userInfo', JSON.stringify(data.userInfo))
+        localStorage.setItem('token', data.data.token)
+        localStorage.setItem('userInfo', JSON.stringify(data.data.userInfo))
         localStorage.setItem('loginTime', String(Date.now()))
-        
-        return { success: true }
-      } else {
-        return { success: false, message: data.message }
+        return { success: true as const }
       }
-    } catch (error) {
-      return { success: false, message: '登录失败，请稍后重试' }
+      return { success: false as const, message: data.message }
+    } catch (e: any) {
+      return { success: false as const, message: e?.message || '登录失败，请稍后重试' }
     }
   }
 
   async function register(username: string, phone: string, password: string, email?: string) {
     try {
-      const response = await fetch('/api/user/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, phone, email, password })
-      })
-
-      const data = await response.json()
+      const data = await post<{ success: boolean; message?: string }>(
+        '/api/user/register',
+        { username, phone, email, password }
+      )
       return { success: data.success, message: data.message }
-    } catch (error) {
-      return { success: false, message: '注册失败，请稍后重试' }
+    } catch (e: any) {
+      return { success: false as const, message: e?.message || '注册失败，请稍后重试' }
     }
   }
 
@@ -93,43 +78,22 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('loginTime')
   }
 
-  function checkAndRefreshAuth(): boolean {
-    if (!token.value) return false
-    const now = Date.now()
-    if (now - loginTime.value > TOKEN_EXPIRE_TIME) {
-      logout()
-      return false
-    }
-    return true
+  async function checkExpiry(): Promise<void> {
+    if (!token.value) return
+    if (Date.now() - loginTime.value > TOKEN_EXPIRE_TIME) logout()
   }
 
   async function fetchUserInfo() {
     try {
-      const response = await fetch('/api/user/info', {
-        headers: { 'Authorization': token.value }
-      })
-      
-      const data = await response.json()
-      if (data.success) {
+      const data = await get<{ success: boolean; data: UserInfo }>('/api/user/info')
+      if (data.success && data.data) {
         userInfo.value = data.data
         localStorage.setItem('userInfo', JSON.stringify(data.data))
         return true
       }
       return false
-    } catch (error) {
-      return false
-    }
+    } catch { return false }
   }
 
-  return {
-    token,
-    userInfo,
-    loginTime,
-    isLoggedIn,
-    login,
-    register,
-    logout,
-    checkAndRefreshAuth,
-    fetchUserInfo
-  }
+  return { token, userInfo, loginTime, isLoggedIn, login, register, logout, checkExpiry, fetchUserInfo }
 })

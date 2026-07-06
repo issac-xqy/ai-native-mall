@@ -258,8 +258,15 @@ const loadCategories = async () => {
   try {
     const data = await get<any>('/api/category/list')
     if (data.success) {
-      // 只显示一级分类（parentId为0的）
-      categories.value = data.data.filter((cat: Category) => cat.parentId === 0)
+      // 只显示一级分类（parentId为0的），按名称去重（数据库存在重复数据的临时修复）
+      const seen = new Set<string>()
+      categories.value = data.data
+        .filter((cat: Category) => cat.parentId === 0)
+        .filter((cat: Category) => {
+          if (seen.has(cat.name)) return false
+          seen.add(cat.name)
+          return true
+        })
     }
   } catch (error) {
     console.error('加载分类列表失败', error)

@@ -47,6 +47,19 @@ build/
 ### Claude Code ###
 .claude/
 
+### MCP Configuration (may contain credentials) ###
+.mcp.json
+
 ### Environment Variables ###
 .env
 !.env.example
+
+### Test Artifacts ###
+testing/e2e-screenshots/
+testing/test-results/
+testing/playwright-report/
+testing/ops-reports/
+web-client/e2e-screenshots/
+web-client/test-results/
+web-client/playwright-report/
+ops-reports/
