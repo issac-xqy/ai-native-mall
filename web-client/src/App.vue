@@ -38,7 +38,12 @@
         </div>
       </div>
     </el-header>
-    <el-main class="main-content"><router-view /></el-main>
+    <el-main class="main-content">
+      <Suspense>
+        <template #default><router-view /></template>
+        <template #fallback><SkeletonLoader :count="6" /></template>
+      </Suspense>
+    </el-main>
     <el-footer class="site-footer">
       <div class="footer-grid">
         <div class="footer-col"><h4>AI Mall</h4><p>智能购物，AI驱动</p></div>
@@ -57,6 +62,7 @@ import { useCartStore } from './stores/cart'
 import { useUserStore } from './stores/user'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+import SkeletonLoader from './components/SkeletonLoader.vue'
 
 const route = useRoute()
 const router = useRouter()
