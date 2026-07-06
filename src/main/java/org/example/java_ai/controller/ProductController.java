@@ -1,6 +1,8 @@
 package org.example.java_ai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.common.PageResult;
@@ -18,8 +20,9 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/product")
+@RequestMapping("/product")
 @RequiredArgsConstructor
+@Tag(name = "商品模块", description = "商品查询、详情、搜索、排行榜")
 public class ProductController {
 
     private final ProductService productService;

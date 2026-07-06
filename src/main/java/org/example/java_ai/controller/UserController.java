@@ -1,5 +1,8 @@
 package org.example.java_ai.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +21,14 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/user")
 @RequiredArgsConstructor
+@Tag(name = "用户模块", description = "登录、注册、Token 刷新、个人信息管理")
 public class UserController {
 
     private final UserService userService;
 
+    @Operation(summary = "用户登录", description = "用户名+密码登录，返回 access token(15分钟) + refresh token(7天)")
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> request) {
         String username = request.get("username");
@@ -44,6 +49,7 @@ public class UserController {
                 )));
     }
 
+    @Operation(summary = "刷新 Token", description = "用 refresh token 换取新的 access token + refresh token（旋转刷新）")
     @PostMapping("/refresh")
     public Result<Map<String, Object>> refreshToken(@RequestBody @Valid RefreshTokenRequest request) {
         LoginResult loginResult = userService.refreshToken(request.refreshToken());
