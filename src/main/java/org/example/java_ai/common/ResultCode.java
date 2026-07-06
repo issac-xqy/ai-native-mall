@@ -36,6 +36,9 @@ public enum ResultCode {
     PRODUCT_NOT_FOUND(1005, "商品不存在"),
     USER_NOT_FOUND(1006, "用户不存在"),
     
+    RATE_LIMITED(429, "请求过于频繁，请稍后重试"),
+    LOGIN_RATE_LIMITED(4001, "登录尝试过于频繁"),
+
     // AI相关错误 (2xxx)
     AI_SERVICE_ERROR(2000, "AI服务异常"),
     AI_TIMEOUT(2001, "AI服务超时"),

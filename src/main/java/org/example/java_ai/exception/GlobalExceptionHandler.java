@@ -30,8 +30,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.OK)
-    public Result<Void> handleBusinessException(BusinessException e) {
+    public Result<?> handleBusinessException(BusinessException e) {
         log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
+        if (e.getRetryAfterSeconds() != null) {
+            return Result.error(e.getCode(), e.getMessage(), java.util.Map.of("retryAfterSeconds", e.getRetryAfterSeconds()));
+        }
         return Result.error(e.getCode(), e.getMessage());
     }
 

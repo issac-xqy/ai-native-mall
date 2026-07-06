@@ -1,5 +1,6 @@
 package org.example.java_ai.service;
 
+import org.example.java_ai.config.RedisRateLimiter;
 import org.example.java_ai.dto.LoginResult;
 import org.example.java_ai.entity.User;
 import org.example.java_ai.exception.BusinessException;
@@ -22,13 +23,16 @@ class UserServiceTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private RedisRateLimiter redisRateLimiter;
+
     private UserServiceImpl userService;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(encoder);
+        userService = new UserServiceImpl(encoder, redisRateLimiter);
         ReflectionTestUtils.setField(userService, "baseMapper", userMapper);
     }
 
@@ -82,6 +86,7 @@ class UserServiceTest {
         User mockUser = buildUser(1L, "zhangsan", "张三", "13800001111");
         mockUser.setPassword(encoder.encode("pass123"));
         doReturn(mockUser).when(userMapper).selectOne(any(), anyBoolean());
+        when(redisRateLimiter.tryAcquire(anyString(), anyInt(), anyLong())).thenReturn(true);
 
         LoginResult result = userService.login("zhangsan", "pass123");
 

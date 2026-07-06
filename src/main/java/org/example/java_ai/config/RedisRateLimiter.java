@@ -98,6 +98,33 @@ public class RedisRateLimiter {
     }
 
     /**
+     * 剩余可用次数（不增加计数）
+     */
+    public long getRemaining(String key, int limit) {
+        String redisKey = "rate_limit:" + key;
+        try {
+            String count = redisTemplate.opsForValue().get(redisKey);
+            long current = count != null ? Long.parseLong(count) : 0;
+            return Math.max(0, limit - current);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * 获取 key 的 TTL（秒）
+     */
+    public long getTtl(String key) {
+        String redisKey = "rate_limit:" + key;
+        try {
+            Long ttl = redisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
+            return ttl != null && ttl > 0 ? ttl : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
      * 重置限流计数
      */
     public void reset(String key) {

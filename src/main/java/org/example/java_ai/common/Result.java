@@ -76,6 +76,13 @@ public class Result<T> implements Serializable {
     }
     
     /**
+     * 失败响应（带数据）
+     */
+    public static <T> Result<T> error(Integer code, String message, T data) {
+        return new Result<>(code, message, data, System.currentTimeMillis());
+    }
+
+    /**
      * 失败响应（使用ResultCode枚举）
      */
     public static <T> Result<T> error(ResultCode resultCode) {

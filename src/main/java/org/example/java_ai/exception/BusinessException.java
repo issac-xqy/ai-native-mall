@@ -18,33 +18,49 @@ public class BusinessException extends RuntimeException {
      * 错误码
      */
     private final Integer code;
-    
+
     /**
      * 错误消息
      */
     private final String message;
-    
+
+    /**
+     * 限流场景：重试等待秒数
+     */
+    private final Integer retryAfterSeconds;
+
     public BusinessException(String message) {
         super(message);
         this.code = ResultCode.BUSINESS_ERROR.getCode();
         this.message = message;
+        this.retryAfterSeconds = null;
     }
-    
+
     public BusinessException(Integer code, String message) {
         super(message);
         this.code = code;
         this.message = message;
+        this.retryAfterSeconds = null;
     }
-    
+
     public BusinessException(ResultCode resultCode) {
         super(resultCode.getMessage());
         this.code = resultCode.getCode();
         this.message = resultCode.getMessage();
+        this.retryAfterSeconds = null;
     }
-    
+
     public BusinessException(ResultCode resultCode, String message) {
         super(message);
         this.code = resultCode.getCode();
         this.message = message;
+        this.retryAfterSeconds = null;
+    }
+
+    public BusinessException(ResultCode resultCode, String message, Integer retryAfterSeconds) {
+        super(message);
+        this.code = resultCode.getCode();
+        this.message = message;
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 }

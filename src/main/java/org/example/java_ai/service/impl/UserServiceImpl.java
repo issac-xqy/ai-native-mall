@@ -2,9 +2,11 @@ package org.example.java_ai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.common.ResultCode;
+import org.example.java_ai.config.RedisRateLimiter;
 import org.example.java_ai.dto.LoginResult;
 import org.example.java_ai.entity.User;
 import org.example.java_ai.exception.BusinessException;
@@ -14,8 +16,8 @@ import org.example.java_ai.util.TokenUtil;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Slf4j
 @Service
@@ -23,11 +25,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     private final BCryptPasswordEncoder passwordEncoder;
+    private final RedisRateLimiter redisRateLimiter;
 
-    private final ConcurrentHashMap<String, Integer> loginFailCount = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Long> lockedUntil = new ConcurrentHashMap<>();
-    private static final int MAX_LOGIN_FAILS = 5;
-    private static final long LOCK_DURATION_MS = 15 * 60 * 1000;
+    private static final int LOGIN_RATE_LIMIT_PER_USERNAME = 5;
+    private static final int LOGIN_RATE_LIMIT_PER_IP = 20;
+    private static final int LOGIN_RATE_WINDOW_SECONDS = 60;
 
     @Override
     public User getUserByUsername(String username) {
@@ -54,22 +56,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public LoginResult login(String username, String password) {
-        Long lockExpire = lockedUntil.get(username);
-        if (lockExpire != null && System.currentTimeMillis() < lockExpire) {
-            long minutesLeft = (lockExpire - System.currentTimeMillis()) / 60000 + 1;
-            throw new BusinessException(ResultCode.BAD_REQUEST,
-                    "账号已锁定，请" + minutesLeft + "分钟后再试");
+        // Redis 限流检查：用户名维度 5次/分钟
+        String usernameKey = "login:username:" + username;
+        String ipKey = "login:ip:" + getClientIp();
+
+        try {
+            if (!redisRateLimiter.tryAcquire(usernameKey, LOGIN_RATE_LIMIT_PER_USERNAME, LOGIN_RATE_WINDOW_SECONDS)) {
+                long retryAfter = redisRateLimiter.getTtl(usernameKey);
+                throw new BusinessException(ResultCode.LOGIN_RATE_LIMITED,
+                        "登录尝试过于频繁，请" + retryAfter + "秒后重试",
+                        (int) retryAfter);
+            }
+            if (!redisRateLimiter.tryAcquire(ipKey, LOGIN_RATE_LIMIT_PER_IP, LOGIN_RATE_WINDOW_SECONDS)) {
+                long retryAfter = redisRateLimiter.getTtl(ipKey);
+                throw new BusinessException(ResultCode.LOGIN_RATE_LIMITED,
+                        "登录尝试过于频繁，请" + retryAfter + "秒后重试",
+                        (int) retryAfter);
+            }
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Redis 限流检查异常，降级放行", e);
+            // Redis 不可用时降级放行，避免 Login 完全不可用
         }
 
         User user = getUserByUsername(username);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            int fails = loginFailCount.merge(username, 1, Integer::sum);
-            if (fails >= MAX_LOGIN_FAILS) {
-                lockedUntil.put(username, System.currentTimeMillis() + LOCK_DURATION_MS);
-                loginFailCount.remove(username);
-                log.warn("账号 {} 登录失败次数过多，已锁定15分钟", username);
-                throw new BusinessException(ResultCode.BAD_REQUEST, "登录失败次数过多，账号已锁定15分钟");
-            }
             throw new BusinessException(ResultCode.BAD_REQUEST, "用户名或密码错误");
         }
 
@@ -77,8 +89,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ResultCode.BAD_REQUEST, "账号已被禁用");
         }
 
-        loginFailCount.remove(username);
-        lockedUntil.remove(username);
+        // 登录成功，清除限流计数
+        try {
+            redisRateLimiter.reset(usernameKey);
+            redisRateLimiter.reset(ipKey);
+        } catch (Exception e) {
+            log.debug("清除限流计数失败", e);
+        }
+
         log.info("用户登录成功: {}", username);
         return new LoginResult(
                 TokenUtil.generateAccessToken(user.getId()),
@@ -99,7 +117,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ResultCode.UNAUTHORIZED, "用户不存在或已禁用");
         }
         log.info("Token 刷新成功: userId={}", userId);
-        // 旋转 refresh token：发放全新的一对
         return new LoginResult(
                 TokenUtil.generateAccessToken(userId),
                 TokenUtil.generateRefreshToken(userId));
@@ -141,5 +158,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         updateById(user);
         log.info("用户密码修改成功: {}", userId);
         return true;
+    }
+
+    private String getClientIp() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs == null) return "unknown";
+            HttpServletRequest request = attrs.getRequest();
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("X-Real-IP");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getRemoteAddr();
+            }
+            return ip;
+        } catch (Exception e) {
+            return "unknown";
+        }
     }
 }
