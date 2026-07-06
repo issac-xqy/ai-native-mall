@@ -10,10 +10,9 @@ spring:
       maximum-pool-size: 100
       minimum-idle: 20
 
-  # 生产禁用 SQL 初始化
-  sql:
-    init:
-      mode: never
+  # 生产使用 Flyway 管理数据库版本
+  flyway:
+    enabled: true
 
   # 生产禁用 LangChain4j 请求/响应日志
   langchain4j:

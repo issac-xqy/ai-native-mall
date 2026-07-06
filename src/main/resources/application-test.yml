@@ -18,6 +18,9 @@ spring:
     init:
       mode: always
 
+  flyway:
+    enabled: false
+
 app:
   admin:
     user-ids: 1,2
