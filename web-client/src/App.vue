@@ -8,19 +8,22 @@
           <span class="brand-text">AI Mall</span>
         </div>
         <el-menu :default-active="activeIndex" class="nav-menu" mode="horizontal" router>
-          <el-menu-item index="/">首页</el-menu-item>
-          <el-menu-item index="/products">全部商品</el-menu-item>
+          <el-menu-item index="/">{{ $t('nav.home') }}</el-menu-item>
+          <el-menu-item index="/products">{{ $t('nav.products') }}</el-menu-item>
           <el-menu-item index="/cart">
-            购物车<el-badge v-if="cartStore.totalCount > 0" :value="cartStore.totalCount" class="cart-badge"/>
+            {{ $t('nav.cart') }}<el-badge v-if="cartStore.totalCount > 0" :value="cartStore.totalCount" class="cart-badge"/>
           </el-menu-item>
-          <el-menu-item index="/orders">我的订单</el-menu-item>
-          <el-menu-item index="/wallet">我的钱包</el-menu-item>
-          <el-menu-item index="/ai-chat">AI客服</el-menu-item>
-          <el-menu-item index="/profile">个人中心</el-menu-item>
+          <el-menu-item index="/orders">{{ $t('nav.orders') }}</el-menu-item>
+          <el-menu-item index="/wallet">{{ $t('nav.wallet') }}</el-menu-item>
+          <el-menu-item index="/ai-chat">{{ $t('nav.aiChat') }}</el-menu-item>
+          <el-menu-item index="/profile">{{ $t('nav.profile') }}</el-menu-item>
         </el-menu>
         <div class="nav-right">
-          <el-input v-model="searchKeyword" placeholder="搜索商品..." :prefix-icon="Search" clearable class="nav-search"
+          <el-input v-model="searchKeyword" :placeholder="$t('nav.search')" :prefix-icon="Search" clearable class="nav-search"
             @keyup.enter="router.push({ path: '/products', query: { keyword: searchKeyword.trim() } })"/>
+          <el-button text circle class="lang-btn" @click="toggleLang">
+            {{ locale === 'zh-CN' ? 'EN' : '中' }}
+          </el-button>
           <el-dropdown v-if="userStore.isLoggedIn">
             <span class="user-badge">
               <el-avatar :size="34" :style="{background:'var(--brand-gradient)'}">{{ userStore.userInfo?.nickname?.[0] || 'U' }}</el-avatar>
@@ -28,13 +31,13 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="router.push('/profile')">个人中心</el-dropdown-item>
-                <el-dropdown-item @click="router.push('/orders')">我的订单</el-dropdown-item>
-                <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/profile')">{{ $t('logout.profile') }}</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/orders')">{{ $t('logout.orders') }}</el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">{{ $t('logout.logout') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button v-else type="primary" round @click="router.push('/login')">登录</el-button>
+          <el-button v-else type="primary" round @click="router.push('/login')">{{ $t('nav.login') }}</el-button>
         </div>
       </div>
     </el-header>
@@ -46,11 +49,11 @@
     </el-main>
     <el-footer class="site-footer">
       <div class="footer-grid">
-        <div class="footer-col"><h4>AI Mall</h4><p>智能购物，AI驱动</p></div>
-        <div class="footer-col"><h4>服务</h4><p>AI客服</p><p>智能推荐</p></div>
-        <div class="footer-col"><h4>链接</h4><p>GitHub</p><p>关于</p></div>
+        <div class="footer-col"><h4>AI Mall</h4><p>{{ $t('footer.about') }}</p></div>
+        <div class="footer-col"><h4>{{ $t('footer.service') }}</h4><p>{{ $t('footer.aiService') }}</p><p>{{ $t('footer.aiRecommend') }}</p></div>
+        <div class="footer-col"><h4>{{ $t('footer.links') }}</h4><p>GitHub</p><p>关于</p></div>
       </div>
-      <p class="footer-copy">© 2026 AI-Native Smart Mall · Powered by xqy</p>
+      <p class="footer-copy">{{ $t('footer.copy') }}</p>
     </el-footer>
   </el-container>
 </template>
@@ -58,12 +61,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useCartStore } from './stores/cart'
 import { useUserStore } from './stores/user'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import SkeletonLoader from './components/SkeletonLoader.vue'
 
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
@@ -72,10 +77,15 @@ const searchKeyword = ref('')
 const activeIndex = computed(() => route.path)
 const isLoginPage = computed(() => route.path === '/login')
 
+const toggleLang = () => {
+  locale.value = locale.value === 'zh-CN' ? 'en' : 'zh-CN'
+  localStorage.setItem('lang', locale.value)
+}
+
 const handleLogout = () => {
   userStore.logout()
   router.push('/login')
-  ElMessage.success('已退出登录')
+  ElMessage.success(t('logout.success'))
 }
 </script>
 
@@ -99,6 +109,7 @@ const handleLogout = () => {
 .nav-search :deep(.el-input__wrapper) { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; box-shadow: none; }
 .nav-search :deep(.el-input__inner) { color: #fff; }
 .nav-search :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
+.lang-btn { color: #b8c7e0; font-size: 12px; font-weight: 700; width: 34px; height: 34px; }
 .user-badge { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #fff; }
 .user-name { font-size: 14px; font-weight: 500; }
 
