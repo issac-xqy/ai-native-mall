@@ -15,7 +15,7 @@ import java.util.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/logs")
+@RequestMapping("/admin/logs")
 @RequiredArgsConstructor
 public class LogAnalysisController {
 

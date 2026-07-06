@@ -37,7 +37,7 @@ class AdminProductControllerTest {
         page.setTotal(1);
         when(productService.page(any(Page.class), any())).thenReturn(page);
 
-        mockMvc.perform(get("/api/admin/product/list"))
+        mockMvc.perform(get("/admin/product/list"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.total").value(1))
@@ -51,7 +51,7 @@ class AdminProductControllerTest {
         page.setTotal(0);
         when(productService.page(any(Page.class), any())).thenReturn(page);
 
-        mockMvc.perform(get("/api/admin/product/list")
+        mockMvc.perform(get("/admin/product/list")
                         .param("publishStatus", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.total").value(0));
@@ -66,7 +66,7 @@ class AdminProductControllerTest {
             return true;
         }).when(productService).save(any(Product.class));
 
-        mockMvc.perform(post("/api/admin/product")
+        mockMvc.perform(post("/admin/product")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"name":"新商品","price":1999.00,"stock":100,"categoryId":1}
@@ -80,7 +80,7 @@ class AdminProductControllerTest {
     void updateProduct_Success() throws Exception {
         when(productService.updateById(any(Product.class))).thenReturn(true);
 
-        mockMvc.perform(put("/api/admin/product/1")
+        mockMvc.perform(put("/admin/product/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"name":"改后商品","price":2599.00}
@@ -94,7 +94,7 @@ class AdminProductControllerTest {
     void deleteProduct_Success() throws Exception {
         when(productService.removeById(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/admin/product/1"))
+        mockMvc.perform(delete("/admin/product/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }

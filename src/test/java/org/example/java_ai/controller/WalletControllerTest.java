@@ -40,7 +40,7 @@ class WalletControllerTest {
         UserWallet wallet = buildWallet(1L, 1L, "5000.00");
         when(walletService.getOrCreateWallet(1L)).thenReturn(wallet);
 
-        mockMvc.perform(get("/api/wallet/info")
+        mockMvc.perform(get("/wallet/info")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token))
                 .andExpect(status().isOk())
@@ -54,7 +54,7 @@ class WalletControllerTest {
     void getBalance_HasBalance_ReturnsBalance() throws Exception {
         when(walletService.getBalance(1L)).thenReturn(new BigDecimal("9999.99"));
 
-        mockMvc.perform(get("/api/wallet/balance")
+        mockMvc.perform(get("/wallet/balance")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token))
                 .andExpect(status().isOk())
@@ -68,7 +68,7 @@ class WalletControllerTest {
         RechargeRecord record = buildRechargeRecord(1L, "500.00", "R001", 0);
         when(walletService.recharge(eq(1L), any(BigDecimal.class), eq(1), any())).thenReturn(record);
 
-        mockMvc.perform(post("/api/wallet/recharge")
+        mockMvc.perform(post("/wallet/recharge")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .param("amount", "500.00")
@@ -80,7 +80,7 @@ class WalletControllerTest {
     @Test
     @DisplayName("充值-金额为0-返回错误")
     void recharge_ZeroAmount_ReturnsError() throws Exception {
-        mockMvc.perform(post("/api/wallet/recharge")
+        mockMvc.perform(post("/wallet/recharge")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .param("amount", "0"))
@@ -91,7 +91,7 @@ class WalletControllerTest {
     @Test
     @DisplayName("充值-负数金额-返回错误")
     void recharge_NegativeAmount_ReturnsError() throws Exception {
-        mockMvc.perform(post("/api/wallet/recharge")
+        mockMvc.perform(post("/wallet/recharge")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .param("amount", "-100"))
@@ -102,7 +102,7 @@ class WalletControllerTest {
     @Test
     @DisplayName("充值-超过10000-返回错误")
     void recharge_ExceedLimit_ReturnsError() throws Exception {
-        mockMvc.perform(post("/api/wallet/recharge")
+        mockMvc.perform(post("/wallet/recharge")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .param("amount", "10000.01"))
@@ -118,7 +118,7 @@ class WalletControllerTest {
         when(walletService.getRechargeRecords(eq(1L), eq(1), eq(10), isNull()))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/wallet/recharge-records")
+        mockMvc.perform(get("/wallet/recharge-records")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .param("pageNum", "1")
@@ -132,7 +132,7 @@ class WalletControllerTest {
     @DisplayName("无Token访问钱包-返回200(Controller层不做null检查)")
     void noToken_Returns200() throws Exception {
         when(walletService.getOrCreateWallet(null)).thenReturn(buildWallet(null, null, "0.00"));
-        mockMvc.perform(get("/api/wallet/info"))
+        mockMvc.perform(get("/wallet/info"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }

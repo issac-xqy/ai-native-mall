@@ -37,7 +37,7 @@ class UserControllerTest {
                 .thenReturn(new LoginResult("Bearer test.access.jwt.token", "Bearer test.refresh.jwt.token"));
         when(userService.getUserByUsername("testuser")).thenReturn(mockUser);
 
-        mockMvc.perform(post("/api/user/login")
+        mockMvc.perform(post("/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"testuser\",\"password\":\"pass123\"}"))
                 .andExpect(status().isOk())
@@ -52,7 +52,7 @@ class UserControllerTest {
         when(userService.login("nobody", "pass"))
                 .thenThrow(new BusinessException(400, "用户名或密码错误"));
 
-        mockMvc.perform(post("/api/user/login")
+        mockMvc.perform(post("/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"nobody\",\"password\":\"pass\"}"))
                 .andExpect(status().isOk())
@@ -65,7 +65,7 @@ class UserControllerTest {
         when(userService.register(eq("newuser"), eq("pass123"), any(), eq("13800000001"), eq("e@t.com")))
                 .thenReturn(new User());
 
-        mockMvc.perform(post("/api/user/register")
+        mockMvc.perform(post("/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"username":"newuser","password":"pass123","nickname":"newuser","phone":"13800000001","email":"e@t.com"}
@@ -80,7 +80,7 @@ class UserControllerTest {
         when(userService.register(eq("existing"), any(), any(), any(), any()))
                 .thenThrow(new BusinessException(400, "用户名已存在"));
 
-        mockMvc.perform(post("/api/user/register")
+        mockMvc.perform(post("/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"username":"existing","password":"pass","nickname":"existing","phone":"13800000001","email":"e@t.com"}
@@ -94,7 +94,7 @@ class UserControllerTest {
     void getUserInfo_Authenticated_ReturnsUser() throws Exception {
         when(userService.getById(1L)).thenReturn(buildUser(1L, "testuser", "测试"));
 
-        mockMvc.perform(get("/api/user/info")
+        mockMvc.perform(get("/user/info")
                         .requestAttr("userId", 1L)
                         .header("Authorization", validToken))
                 .andExpect(status().isOk())
@@ -105,7 +105,7 @@ class UserControllerTest {
     @Test
     @DisplayName("获取用户信息-无Token-返回401")
     void getUserInfo_NoToken_Returns401() throws Exception {
-        mockMvc.perform(get("/api/user/info"))
+        mockMvc.perform(get("/user/info"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(401));
     }
@@ -116,7 +116,7 @@ class UserControllerTest {
         when(userService.updateUserInfo(eq(1L), any(User.class)))
                 .thenReturn(buildUser(1L, "testuser", "新昵称"));
 
-        mockMvc.perform(put("/api/user/info")
+        mockMvc.perform(put("/user/info")
                         .requestAttr("userId", 1L)
                         .header("Authorization", validToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +130,7 @@ class UserControllerTest {
     @Test
     @DisplayName("更新用户信息-无Token-返回401")
     void updateUserInfo_NoToken_Returns401() throws Exception {
-        mockMvc.perform(put("/api/user/info")
+        mockMvc.perform(put("/user/info")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nickname\":\"x\"}"))
                 .andExpect(status().isOk())

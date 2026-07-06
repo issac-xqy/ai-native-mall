@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/order")
+@RequestMapping("/admin/order")
 @RequiredArgsConstructor
 public class AdminOrderController {
 

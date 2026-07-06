@@ -5,9 +5,10 @@ spring:
       on-profile: test
 
   datasource:
-    url: jdbc:mysql://${TEST_DB_HOST:localhost}:${TEST_DB_PORT:3306}/${TEST_DB_NAME:ai_mall_test}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: ${TEST_DB_USERNAME:root}
-    password: ${TEST_DB_PASSWORD:1234}
+    url: jdbc:h2:mem:ai_mall_test;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
 
   data:
     redis:
@@ -16,10 +17,14 @@ spring:
 
   sql:
     init:
-      mode: always
+      mode: never
 
   flyway:
     enabled: false
+
+  cloud:
+    sentinel:
+      enabled: false
 
 app:
   admin:

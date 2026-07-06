@@ -18,7 +18,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/wallet")
+@RequestMapping("/wallet")
 @RequiredArgsConstructor
 public class WalletController {
 

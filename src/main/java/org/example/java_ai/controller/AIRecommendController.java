@@ -15,7 +15,7 @@ import java.util.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/ai/recommend")
+@RequestMapping("/ai/recommend")
 @RequiredArgsConstructor
 public class AIRecommendController {
 

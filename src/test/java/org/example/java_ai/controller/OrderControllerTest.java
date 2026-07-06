@@ -35,7 +35,7 @@ class OrderControllerTest {
         when(orderService.createOrder(eq(1L), eq("ORD001"), anyList()))
                 .thenReturn(Map.of("success", true, "orderId", 1, "orderNo", "ORD001"));
 
-        mockMvc.perform(post("/api/order")
+        mockMvc.perform(post("/order")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -49,7 +49,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("创建订单-无Token-返回未登录")
     void createOrder_NoToken_ReturnsUnauthorized() throws Exception {
-        mockMvc.perform(post("/api/order")
+        mockMvc.perform(post("/order")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderNo\":\"ORD001\",\"items\":[]}"))
                 .andExpect(status().isOk())
@@ -63,7 +63,7 @@ class OrderControllerTest {
         when(orderService.payOrder(eq(1L), eq("ORD001"), eq("wallet")))
                 .thenReturn(Map.of("success", true, "message", "支付成功"));
 
-        mockMvc.perform(put("/api/order/ORD001/pay")
+        mockMvc.perform(put("/order/ORD001/pay")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -78,7 +78,7 @@ class OrderControllerTest {
         when(orderService.payOrder(eq(1L), eq("NOT_EXIST"), any()))
                 .thenReturn(Map.of("success", false, "message", "订单不存在"));
 
-        mockMvc.perform(put("/api/order/NOT_EXIST/pay")
+        mockMvc.perform(put("/order/NOT_EXIST/pay")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -94,7 +94,7 @@ class OrderControllerTest {
         when(orderService.confirmOrder(eq(1L), eq("ORD001")))
                 .thenReturn(Map.of("success", true, "message", "确认收货成功"));
 
-        mockMvc.perform(put("/api/order/ORD001/confirm")
+        mockMvc.perform(put("/order/ORD001/confirm")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token))
                 .andExpect(status().isOk())
@@ -107,7 +107,7 @@ class OrderControllerTest {
         when(orderService.cancelOrder(eq(1L), eq("ORD002")))
                 .thenReturn(Map.of("success", true, "message", "订单已取消"));
 
-        mockMvc.perform(put("/api/order/ORD002/cancel")
+        mockMvc.perform(put("/order/ORD002/cancel")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token))
                 .andExpect(status().isOk())
@@ -120,7 +120,7 @@ class OrderControllerTest {
         when(orderService.cancelOrder(eq(1L), eq("ORD003")))
                 .thenReturn(Map.of("success", false, "message", "已支付订单请申请退款"));
 
-        mockMvc.perform(put("/api/order/ORD003/cancel")
+        mockMvc.perform(put("/order/ORD003/cancel")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token))
                 .andExpect(status().isOk())
@@ -134,7 +134,7 @@ class OrderControllerTest {
         when(orderService.refundOrder(eq(1L), eq("ORD004"), any()))
                 .thenReturn(Map.of("success", true, "message", "退款成功"));
 
-        mockMvc.perform(put("/api/order/ORD004/refund")
+        mockMvc.perform(put("/order/ORD004/refund")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,7 +149,7 @@ class OrderControllerTest {
         when(orderService.shipOrder(eq(1L), eq("ORD005"), eq("顺丰"), eq("SF123")))
                 .thenReturn(Map.of("success", true, "logisticsCompany", "顺丰"));
 
-        mockMvc.perform(put("/api/order/ORD005/ship")
+        mockMvc.perform(put("/order/ORD005/ship")
                         .requestAttr("userId", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"logisticsCompany\":\"顺丰\",\"trackingNo\":\"SF123\"}"))
@@ -163,7 +163,7 @@ class OrderControllerTest {
         when(orderService.listOrders(1L, null))
                 .thenReturn(List.of(Map.of("id", 1, "orderNo", "ORD001")));
 
-        mockMvc.perform(get("/api/order/list")
+        mockMvc.perform(get("/order/list")
                         .requestAttr("userId", 1L)
                         .header("Authorization", token))
                 .andExpect(status().isOk())

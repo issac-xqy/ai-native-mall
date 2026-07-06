@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/comment")
+@RequestMapping("/comment")
 @RequiredArgsConstructor
 public class CommentController {
 

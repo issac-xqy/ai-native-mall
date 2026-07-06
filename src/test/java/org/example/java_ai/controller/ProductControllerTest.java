@@ -42,7 +42,7 @@ class ProductControllerTest {
         when(productService.listProducts(eq(1), eq(10), isNull(), isNull(), eq("create_time"), eq("desc")))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/product/list"))
+        mockMvc.perform(get("/product/list"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.records").isArray())
@@ -55,7 +55,7 @@ class ProductControllerTest {
         when(productService.listProducts(eq(1), eq(5), isNull(), isNull(), eq("create_time"), eq("desc")))
                 .thenReturn(buildPage(0));
 
-        mockMvc.perform(get("/api/product/list")
+        mockMvc.perform(get("/product/list")
                         .param("pageNum", "1")
                         .param("pageSize", "5"))
                 .andExpect(status().isOk())
@@ -68,7 +68,7 @@ class ProductControllerTest {
         when(productService.listProducts(eq(1), eq(10), eq(1L), eq("手机"), eq("price"), eq("asc")))
                 .thenReturn(buildPage(2));
 
-        mockMvc.perform(get("/api/product/list")
+        mockMvc.perform(get("/product/list")
                         .param("categoryId", "1")
                         .param("keyword", "手机")
                         .param("sortField", "price")
@@ -85,7 +85,7 @@ class ProductControllerTest {
         Product product = buildProduct(1L, "iPhone 15", "5999.00", 50);
         when(productService.getProductById(1L)).thenReturn(product);
 
-        mockMvc.perform(get("/api/product/1"))
+        mockMvc.perform(get("/product/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.name").value("iPhone 15"))
@@ -98,7 +98,7 @@ class ProductControllerTest {
     void getProduct_NotExists_ReturnsError() throws Exception {
         when(productService.getProductById(999L)).thenReturn(null);
 
-        mockMvc.perform(get("/api/product/999"))
+        mockMvc.perform(get("/product/999"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1005));
     }
@@ -111,7 +111,7 @@ class ProductControllerTest {
         Product input = buildProduct(null, "新商品", "1999.00", 100);
         when(productService.createProduct(any(Product.class))).thenReturn(input);
 
-        mockMvc.perform(post("/api/product")
+        mockMvc.perform(post("/product")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"name":"新商品","price":1999.00,"stock":100,"categoryId":1,"status":1}
@@ -129,7 +129,7 @@ class ProductControllerTest {
         Product updated = buildProduct(1L, "改后商品", "2599.00", 80);
         when(productService.updateProduct(any(Product.class))).thenReturn(updated);
 
-        mockMvc.perform(put("/api/product/1")
+        mockMvc.perform(put("/product/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"name":"改后商品","price":2599.00,"stock":80}
@@ -146,7 +146,7 @@ class ProductControllerTest {
     void deleteProduct_Normal_ReturnsSuccess() throws Exception {
         when(productService.deleteProduct(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/product/1"))
+        mockMvc.perform(delete("/product/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }
@@ -156,7 +156,7 @@ class ProductControllerTest {
     void deleteProduct_NotExists_ReturnsError() throws Exception {
         when(productService.deleteProduct(999L)).thenReturn(false);
 
-        mockMvc.perform(delete("/api/product/999"))
+        mockMvc.perform(delete("/product/999"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1005));
     }
@@ -169,7 +169,7 @@ class ProductControllerTest {
         when(productService.getTopSalesProducts(10))
                 .thenReturn(List.of(buildProduct(1L, "爆款", "99.00", 100)));
 
-        mockMvc.perform(get("/api/product/top-sales"))
+        mockMvc.perform(get("/product/top-sales"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data[0].name").value("爆款"));
@@ -183,7 +183,7 @@ class ProductControllerTest {
         when(productService.getTopRatedProducts(10))
                 .thenReturn(List.of(buildProduct(1L, "好评商品", "199.00", 50)));
 
-        mockMvc.perform(get("/api/product/top-rated"))
+        mockMvc.perform(get("/product/top-rated"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data[0].name").value("好评商品"));

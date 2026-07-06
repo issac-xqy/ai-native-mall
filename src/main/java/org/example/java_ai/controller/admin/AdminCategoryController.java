@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/category")
+@RequestMapping("/admin/category")
 @RequiredArgsConstructor
 public class AdminCategoryController {
 

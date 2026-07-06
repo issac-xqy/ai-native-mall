@@ -14,7 +14,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/product")
+@RequestMapping("/admin/product")
 @RequiredArgsConstructor
 public class AdminProductController {
 

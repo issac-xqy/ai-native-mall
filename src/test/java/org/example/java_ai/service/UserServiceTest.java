@@ -15,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserService 单元测试")
@@ -34,6 +35,8 @@ class UserServiceTest {
     void setUp() {
         userService = new UserServiceImpl(encoder, redisRateLimiter);
         ReflectionTestUtils.setField(userService, "baseMapper", userMapper);
+        // 所有测试默认放行限流检查（注册/查用户不走 login，mockito 会报 unnecessary stubbing）
+        lenient().when(redisRateLimiter.tryAcquire(anyString(), anyInt(), anyLong())).thenReturn(true);
     }
 
     @Test
@@ -99,6 +102,7 @@ class UserServiceTest {
     @DisplayName("login-用户名不存在-抛异常")
     void login_UserNotFound_ThrowsException() {
         doReturn(null).when(userMapper).selectOne(any(), anyBoolean());
+        when(redisRateLimiter.tryAcquire(anyString(), anyInt(), anyLong())).thenReturn(true);
 
         BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.login("nobody", "pass"));
@@ -111,6 +115,7 @@ class UserServiceTest {
         User mockUser = buildUser(1L, "zhangsan", "张三", "13800001111");
         mockUser.setPassword(encoder.encode("correct_pwd"));
         doReturn(mockUser).when(userMapper).selectOne(any(), anyBoolean());
+        when(redisRateLimiter.tryAcquire(anyString(), anyInt(), anyLong())).thenReturn(true);
 
         BusinessException ex = assertThrows(BusinessException.class, () ->
                 userService.login("zhangsan", "wrong_pwd"));
