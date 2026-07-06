@@ -1,7 +1,7 @@
 # ==================== Application Base Configuration ====================
 app:
   admin:
-    user-ids: 1,2
+    user-ids: 1
 
 server:
   port: 8081

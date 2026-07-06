@@ -3,13 +3,16 @@ package org.example.java_ai.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.common.OrderStatus;
+import org.example.java_ai.common.ResultCode;
 import org.example.java_ai.entity.Order;
 import org.example.java_ai.entity.OrderItem;
 import org.example.java_ai.entity.UserWallet;
+import org.example.java_ai.exception.BusinessException;
 import org.example.java_ai.mapper.OrderItemMapper;
 import org.example.java_ai.mapper.OrderMapper;
 import org.example.java_ai.service.OrderService;
 import org.example.java_ai.service.UserWalletService;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,13 +43,17 @@ public class OrderServiceImpl implements OrderService {
             totalAmount = totalAmount.add(price.multiply(new BigDecimal(quantity)));
         }
 
-        // 插入订单
+        // 插入订单（CHECK 约束会拦截负数金额）
         Order order = new Order();
         order.setOrderNo(orderNo);
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
         order.setStatus(OrderStatus.CREATED.getCode());
-        orderMapper.insert(order);
+        try {
+            orderMapper.insert(order);
+        } catch (DataAccessException e) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "订单金额无效，请检查商品价格");
+        }
 
         for (Map<String, Object> item : items) {
             Long productId = ((Number) item.get("productId")).longValue();
@@ -57,7 +64,8 @@ public class OrderServiceImpl implements OrderService {
             // 原子扣减库存：WHERE stock >= quantity
             int affected = orderMapper.deductStock(productId, quantity);
             if (affected == 0) {
-                throw new RuntimeException("商品【" + productName + "】库存不足");
+                throw new BusinessException(ResultCode.INSUFFICIENT_STOCK,
+                    "商品【" + productName + "】库存不足");
             }
 
             OrderItem oi = new OrderItem();
