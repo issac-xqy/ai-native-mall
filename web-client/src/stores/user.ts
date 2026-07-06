@@ -12,13 +12,14 @@ export interface UserInfo {
   createTime?: string
 }
 
-const TOKEN_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000
+const ACCESS_TOKEN_EXPIRE = 15 * 60 * 1000
 
 export const useUserStore = defineStore('user', () => {
-  // 过滤旧版 bug 产生的无效 token
-  const rawToken = localStorage.getItem('token') || ''
-  const token = ref<string>(rawToken === 'undefined' || rawToken === 'null' || rawToken.length < 10 ? '' : rawToken)
-  if (!token.value) localStorage.removeItem('token')
+  const rawAccessToken = localStorage.getItem('accessToken') || ''
+  const rawRefreshToken = localStorage.getItem('refreshToken') || ''
+
+  const accessToken = ref<string>(rawAccessToken === 'undefined' || rawAccessToken === 'null' || rawAccessToken.length < 10 ? '' : rawAccessToken)
+  const refreshToken = ref<string>(rawRefreshToken === 'undefined' || rawRefreshToken === 'null' || rawRefreshToken.length < 10 ? '' : rawRefreshToken)
 
   const safeJsonParse = (key: string) => {
     try {
@@ -32,21 +33,23 @@ export const useUserStore = defineStore('user', () => {
   const loginTime = ref<number>(Number(localStorage.getItem('loginTime')) || 0)
 
   const isLoggedIn = computed(() => {
-    if (!token.value) return false
-    return (Date.now() - loginTime.value) <= TOKEN_EXPIRE_TIME
+    if (!accessToken.value) return false
+    return (Date.now() - loginTime.value) <= ACCESS_TOKEN_EXPIRE
   })
 
   async function login(username: string, password: string) {
     try {
-      const data = await post<{ success: boolean; message?: string; data: { token: string; userInfo: UserInfo } }>(
+      const data = await post<{ success: boolean; message?: string; data: { accessToken: string; refreshToken: string; userInfo: UserInfo } }>(
         '/api/user/login',
         { username, password }
       )
-      if (data.success && data.data?.token) {
-        token.value = data.data.token
+      if (data.success && data.data?.accessToken) {
+        accessToken.value = data.data.accessToken
+        refreshToken.value = data.data.refreshToken
         userInfo.value = data.data.userInfo
         loginTime.value = Date.now()
-        localStorage.setItem('token', data.data.token)
+        localStorage.setItem('accessToken', data.data.accessToken)
+        localStorage.setItem('refreshToken', data.data.refreshToken)
         localStorage.setItem('userInfo', JSON.stringify(data.data.userInfo))
         localStorage.setItem('loginTime', String(Date.now()))
         return { success: true as const }
@@ -55,6 +58,29 @@ export const useUserStore = defineStore('user', () => {
     } catch (e: any) {
       return { success: false as const, message: e?.message || '登录失败，请稍后重试' }
     }
+  }
+
+  async function refreshAuth(): Promise<boolean> {
+    if (!refreshToken.value) return false
+    try {
+      const data = await post<{ success: boolean; data: { accessToken: string; refreshToken: string } }>(
+        '/api/user/refresh',
+        { refreshToken: refreshToken.value }
+      )
+      if (data.success && data.data?.accessToken) {
+        accessToken.value = data.data.accessToken
+        refreshToken.value = data.data.refreshToken
+        loginTime.value = Date.now()
+        localStorage.setItem('accessToken', data.data.accessToken)
+        localStorage.setItem('refreshToken', data.data.refreshToken)
+        localStorage.setItem('loginTime', String(Date.now()))
+        return true
+      }
+    } catch {
+      // refresh 失败，清除登录状态
+    }
+    logout()
+    return false
   }
 
   async function register(username: string, phone: string, password: string, email?: string) {
@@ -70,17 +96,22 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function logout() {
-    token.value = ''
+    accessToken.value = ''
+    refreshToken.value = ''
     userInfo.value = null
     loginTime.value = 0
-    localStorage.removeItem('token')
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
     localStorage.removeItem('userInfo')
     localStorage.removeItem('loginTime')
+    localStorage.removeItem('token')
   }
 
   async function checkExpiry(): Promise<void> {
-    if (!token.value) return
-    if (Date.now() - loginTime.value > TOKEN_EXPIRE_TIME) logout()
+    if (!accessToken.value) return
+    if (Date.now() - loginTime.value > ACCESS_TOKEN_EXPIRE) {
+      await refreshAuth()
+    }
   }
 
   async function fetchUserInfo() {
@@ -95,5 +126,5 @@ export const useUserStore = defineStore('user', () => {
     } catch { return false }
   }
 
-  return { token, userInfo, loginTime, isLoggedIn, login, register, logout, checkExpiry, fetchUserInfo }
+  return { accessToken, refreshToken, userInfo, loginTime, isLoggedIn, login, refreshAuth, register, logout, checkExpiry, fetchUserInfo }
 })

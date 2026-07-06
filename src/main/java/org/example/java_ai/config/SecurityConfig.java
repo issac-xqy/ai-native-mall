@@ -37,7 +37,7 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // 公开端点
-                .requestMatchers("/api/user/login", "/api/user/register").permitAll()
+                .requestMatchers("/api/user/login", "/api/user/register", "/api/user/refresh").permitAll()
                 .requestMatchers("/api/product/list", "/api/product/top-sales",
                         "/api/product/top-rated", "/api/product/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/product/**").permitAll()

@@ -1,5 +1,6 @@
 package org.example.java_ai.controller;
 
+import org.example.java_ai.dto.LoginResult;
 import org.example.java_ai.entity.User;
 import org.example.java_ai.exception.BusinessException;
 import org.example.java_ai.service.UserService;
@@ -32,7 +33,8 @@ class UserControllerTest {
     @DisplayName("登录-正确用户名密码-返回token")
     void login_CorrectCredentials_ReturnsToken() throws Exception {
         User mockUser = buildUser(1L, "testuser", "测试");
-        when(userService.login("testuser", "pass123")).thenReturn("Bearer test.jwt.token");
+        when(userService.login("testuser", "pass123"))
+                .thenReturn(new LoginResult("Bearer test.access.jwt.token", "Bearer test.refresh.jwt.token"));
         when(userService.getUserByUsername("testuser")).thenReturn(mockUser);
 
         mockMvc.perform(post("/api/user/login")
@@ -40,7 +42,8 @@ class UserControllerTest {
                         .content("{\"username\":\"testuser\",\"password\":\"pass123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.token").isString());
+                .andExpect(jsonPath("$.data.accessToken").isString())
+                .andExpect(jsonPath("$.data.refreshToken").isString());
     }
 
     @Test

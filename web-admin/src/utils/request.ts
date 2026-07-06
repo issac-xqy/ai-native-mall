@@ -4,17 +4,42 @@ import { ElMessage } from 'element-plus'
 // 创建 axios 实例
 const request: AxiosInstance = axios.create({
   baseURL: '/',
-  timeout: 120000, // AI生成耗时较长，调整为120秒
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
+// Token 自动刷新
+let isRefreshing = false
+let refreshPromise: Promise<boolean> | null = null
+
+async function doRefresh(): Promise<boolean> {
+  const rt = localStorage.getItem('adminRefreshToken') || localStorage.getItem('refreshToken')
+  if (!rt) return false
+  try {
+    const resp = await fetch('/api/user/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: rt })
+    })
+    const data = await resp.json()
+    if (data.success && data.data?.accessToken) {
+      localStorage.setItem('adminToken', data.data.accessToken)
+      localStorage.setItem('adminRefreshToken', data.data.refreshToken)
+      return true
+    }
+  } catch { /* refresh failed */ }
+  localStorage.removeItem('adminToken')
+  localStorage.removeItem('adminRefreshToken')
+  localStorage.removeItem('adminUser')
+  return false
+}
+
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    // 从 localStorage 获取 token（兼容 adminToken 和通用 token）
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token')
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('accessToken') || localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = token
     }
@@ -30,27 +55,48 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (response: AxiosResponse) => {
     const res = response.data
-    
-    // 处理业务错误
+
     if (res.success === false) {
       ElMessage.error(res.message || '操作失败')
       return Promise.reject(new Error(res.message || '操作失败'))
     }
-    
+
     return res
   },
-  (error) => {
+  async (error) => {
     console.error('响应错误:', error)
-    
-    // 处理 HTTP 错误
+
     if (error.response) {
       const status = error.response.status
+
+      // 401: 尝试自动刷新 token
+      if (status === 401 && error.config && !error.config._retry) {
+        if (!isRefreshing) {
+          isRefreshing = true
+          refreshPromise = doRefresh().finally(() => {
+            isRefreshing = false
+            refreshPromise = null
+          })
+        }
+        const refreshed = await refreshPromise
+        if (refreshed) {
+          error.config._retry = true
+          const newToken = localStorage.getItem('adminToken')
+          if (newToken) {
+            error.config.headers.Authorization = newToken
+          }
+          return request(error.config)
+        }
+
+        ElMessage.error('登录已过期，请重新登录')
+        localStorage.removeItem('adminToken')
+        localStorage.removeItem('adminRefreshToken')
+        localStorage.removeItem('adminUser')
+        window.location.href = '/login'
+        return Promise.reject(error)
+      }
+
       switch (status) {
-        case 401:
-          ElMessage.error('登录已过期，请重新登录')
-          localStorage.removeItem('adminToken')
-          window.location.href = '/login'
-          break
         case 403:
           ElMessage.error('没有权限访问')
           break
@@ -68,12 +114,11 @@ request.interceptors.response.use(
     } else {
       ElMessage.error('请求配置错误')
     }
-    
+
     return Promise.reject(error)
   }
 )
 
-// 封装请求方法
 export const get = <T = any>(url: string, params?: any, config?: AxiosRequestConfig): Promise<T> => {
   return request.get(url, { params, ...config })
 }

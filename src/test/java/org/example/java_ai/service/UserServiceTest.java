@@ -1,5 +1,6 @@
 package org.example.java_ai.service;
 
+import org.example.java_ai.dto.LoginResult;
 import org.example.java_ai.entity.User;
 import org.example.java_ai.exception.BusinessException;
 import org.example.java_ai.mapper.UserMapper;
@@ -82,10 +83,11 @@ class UserServiceTest {
         mockUser.setPassword(encoder.encode("pass123"));
         doReturn(mockUser).when(userMapper).selectOne(any(), anyBoolean());
 
-        String token = userService.login("zhangsan", "pass123");
+        LoginResult result = userService.login("zhangsan", "pass123");
 
-        assertNotNull(token);
-        assertTrue(token.startsWith("Bearer "));
+        assertNotNull(result);
+        assertTrue(result.accessToken().startsWith("Bearer "));
+        assertTrue(result.refreshToken().startsWith("Bearer "));
     }
 
     @Test

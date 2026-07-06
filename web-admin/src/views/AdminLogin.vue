@@ -38,8 +38,9 @@ const handleLogin = async () => {
       body: JSON.stringify({ username: username.value, password: password.value })
     })
     const data = await res.json()
-    if (data.success && data.data?.token) {
-      localStorage.setItem('adminToken', data.data.token)
+    if (data.success && data.data?.accessToken) {
+      localStorage.setItem('adminToken', data.data.accessToken)
+      localStorage.setItem('adminRefreshToken', data.data.refreshToken)
       localStorage.setItem('adminUser', JSON.stringify(data.data.userInfo))
       ElMessage.success('登录成功')
       location.reload()

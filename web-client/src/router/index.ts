@@ -20,24 +20,24 @@ const router = createRouter({
   scrollBehavior() { return { top: 0 } },
 })
 
-const TOKEN_EXPIRE = 7 * 24 * 60 * 60 * 1000
+const ACCESS_TOKEN_EXPIRE = 15 * 60 * 1000
 
 function hasValidToken(): boolean {
-  const token = localStorage.getItem('token')
-  if (!token || token === 'undefined' || token === 'null' || token.length < 10) {
-    return false
-  }
+  const tk = localStorage.getItem('accessToken') || localStorage.getItem('token')
+  if (!tk || tk === 'undefined' || tk === 'null' || tk.length < 10) return false
   const loginTime = Number(localStorage.getItem('loginTime'))
-  return Date.now() - loginTime <= TOKEN_EXPIRE
+  return Date.now() - loginTime <= ACCESS_TOKEN_EXPIRE
 }
 
 // 路由守卫：需要登录的页面自动跳转
 router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth) {
     if (!hasValidToken()) {
-      localStorage.removeItem('token')
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
       localStorage.removeItem('userInfo')
       localStorage.removeItem('loginTime')
+      localStorage.removeItem('token')
       return next('/login?redirect=' + encodeURIComponent(to.path))
     }
   }

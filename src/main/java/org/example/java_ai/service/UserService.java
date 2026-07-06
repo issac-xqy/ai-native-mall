@@ -2,6 +2,7 @@ package org.example.java_ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.example.java_ai.dto.LoginResult;
 import org.example.java_ai.entity.User;
 
 /**
@@ -20,9 +21,14 @@ public interface UserService extends IService<User> {
     User register(String username, String password, String nickname, String phone, String email);
 
     /**
-     * 用户登录
+     * 用户登录 — 返回双 token
      */
-    String login(String username, String password);
+    LoginResult login(String username, String password);
+
+    /**
+     * 刷新 token — 用 refresh token 换新的 access + refresh token
+     */
+    LoginResult refreshToken(String refreshToken);
 
     /**
      * 更新用户信息

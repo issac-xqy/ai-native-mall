@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.common.ResultCode;
+import org.example.java_ai.dto.LoginResult;
 import org.example.java_ai.entity.User;
 import org.example.java_ai.exception.BusinessException;
 import org.example.java_ai.mapper.UserMapper;
@@ -52,7 +53,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public String login(String username, String password) {
+    public LoginResult login(String username, String password) {
         Long lockExpire = lockedUntil.get(username);
         if (lockExpire != null && System.currentTimeMillis() < lockExpire) {
             long minutesLeft = (lockExpire - System.currentTimeMillis()) / 60000 + 1;
@@ -79,7 +80,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         loginFailCount.remove(username);
         lockedUntil.remove(username);
         log.info("用户登录成功: {}", username);
-        return TokenUtil.generateToken(user.getId());
+        return new LoginResult(
+                TokenUtil.generateAccessToken(user.getId()),
+                TokenUtil.generateRefreshToken(user.getId()));
+    }
+
+    @Override
+    public LoginResult refreshToken(String refreshToken) {
+        if (!TokenUtil.isRefreshToken(refreshToken)) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "无效的刷新令牌");
+        }
+        Long userId = TokenUtil.parseUserId(refreshToken);
+        if (userId == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "无效的刷新令牌");
+        }
+        User user = getById(userId);
+        if (user == null || user.getStatus() != 1) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "用户不存在或已禁用");
+        }
+        log.info("Token 刷新成功: userId={}", userId);
+        // 旋转 refresh token：发放全新的一对
+        return new LoginResult(
+                TokenUtil.generateAccessToken(userId),
+                TokenUtil.generateRefreshToken(userId));
     }
 
     @Override

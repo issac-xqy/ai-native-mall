@@ -1,13 +1,17 @@
 package org.example.java_ai.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.common.Result;
 import org.example.java_ai.common.ResultCode;
+import org.example.java_ai.dto.LoginResult;
+import org.example.java_ai.dto.RefreshTokenRequest;
 import org.example.java_ai.entity.User;
 import org.example.java_ai.exception.BusinessException;
 import org.example.java_ai.service.UserService;
+import org.example.java_ai.util.TokenUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,10 +28,13 @@ public class UserController {
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> request) {
         String username = request.get("username");
         String password = request.get("password");
-        String token = userService.login(username, password);
+        LoginResult loginResult = userService.login(username, password);
         User user = userService.getUserByUsername(username);
         return Result.success(Map.of(
-                "token", token,
+                "accessToken", loginResult.accessToken(),
+                "refreshToken", loginResult.refreshToken(),
+                "tokenType", "Bearer",
+                "expiresIn", TokenUtil.getAccessExpirationSeconds(),
                 "userInfo", Map.of(
                         "id", user.getId(),
                         "username", user.getUsername(),
@@ -35,6 +42,16 @@ public class UserController {
                         "nickname", user.getNickname() != null ? user.getNickname() : user.getUsername(),
                         "email", user.getEmail() != null ? user.getEmail() : ""
                 )));
+    }
+
+    @PostMapping("/refresh")
+    public Result<Map<String, Object>> refreshToken(@RequestBody @Valid RefreshTokenRequest request) {
+        LoginResult loginResult = userService.refreshToken(request.refreshToken());
+        return Result.success(Map.of(
+                "accessToken", loginResult.accessToken(),
+                "refreshToken", loginResult.refreshToken(),
+                "tokenType", "Bearer",
+                "expiresIn", TokenUtil.getAccessExpirationSeconds()));
     }
 
     @PostMapping("/register")
