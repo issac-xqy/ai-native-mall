@@ -49,16 +49,16 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // 公开端点
-                .requestMatchers("/api/user/login", "/api/user/register", "/api/user/refresh").permitAll()
-                .requestMatchers("/api/product/list", "/api/product/top-sales",
-                        "/api/product/top-rated", "/api/product/{id}").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/product/**").permitAll()
-                .requestMatchers("/api/search/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/category/**").permitAll()
-                .requestMatchers("/api/cart/**").authenticated()
-                .requestMatchers("/api/ai/customer-service/**").permitAll()
-                .requestMatchers("/api/ai/recommend/**").permitAll()
-                .requestMatchers("/api/upload/**").permitAll()
+                .requestMatchers("/user/login", "/user/register", "/user/refresh").permitAll()
+                .requestMatchers("/product/list", "/product/top-sales",
+                        "/product/top-rated", "/product/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/product/**").permitAll()
+                .requestMatchers("/search/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/category/**").permitAll()
+                .requestMatchers("/cart/**").authenticated()
+                .requestMatchers("/ai/customer-service/**").permitAll()
+                .requestMatchers("/ai/recommend/**").permitAll()
+                .requestMatchers("/upload/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/", "/error").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
@@ -66,7 +66,7 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui", "/swagger-ui/**",
                         "/v3/api-docs", "/v3/api-docs/**").permitAll()
                 // 管理后台需要 ADMIN 角色
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 // 其余接口需要登录
                 .anyRequest().authenticated()
             )

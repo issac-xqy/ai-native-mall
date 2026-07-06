@@ -68,6 +68,13 @@ export async function request<T = any>(
     delete defaultHeaders['Content-Type']
   }
 
+  // API 版本化：自动将旧 /api/xxx 映射为 /api/v1/xxx
+  const resolveUrl = (u: string) => {
+    if (u.startsWith('/api/v1/')) return u
+    if (u.startsWith('/api/')) return '/api/v1' + u.substring(4)
+    return '/api/v1' + u
+  }
+
   // 使用新的 accessToken，兼容旧的 token
   const token = localStorage.getItem('accessToken') || localStorage.getItem('token')
   if (token && token !== 'undefined' && token !== 'null' && token.length > 10) {
@@ -86,7 +93,7 @@ export async function request<T = any>(
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-      const response = await fetch(url, {
+      const response = await fetch(resolveUrl(url), {
         ...fetchOptions,
         headers: buildHeaders(),
         signal: controller.signal,

@@ -21,6 +21,7 @@ public class OpenApiConfig {
                         .description("AI原生智能商城 — Spring Boot 3.2 + JDK 21 + LangChain4j")
                         .contact(new Contact().name("xqy").email("admin@example.com")))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer"))
+                .addServersItem(new io.swagger.v3.oas.models.servers.Server().url("/api/v1"))
                 .components(new Components()
                         .addSecuritySchemes("Bearer", new SecurityScheme()
                                 .name("Authorization")
