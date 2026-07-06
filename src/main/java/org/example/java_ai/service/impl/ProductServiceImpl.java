@@ -244,10 +244,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         wrapper.and(w -> w.like(Product::getName, productName)
                           .or()
                           .like(Product::getDescription, productName))
-               .eq(Product::getStatus, 1)
-               .last("LIMIT 1");
-        
-        Product product = getOne(wrapper);
+               .eq(Product::getStatus, 1);
+
+        Page<Product> p = new Page<>(1, 1);
+        p = page(p, wrapper);
+        Product product = p.getRecords().isEmpty() ? null : p.getRecords().get(0);
         if (product == null) {
             log.warn("未找到商品: {}", productName);
             return Map.of(
@@ -365,16 +366,17 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public List<Product> getTopSalesProducts(Integer limit) {
         // 查询销量Top N商品，用户端只显示已上架且有库存的
+        // 用 Page 对象限制条数，避免 .last() 字符串拼接风险
+        Page<Product> page = new Page<>(1, limit != null ? limit : 10);
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Product::getPublishStatus, 1)
                .gt(Product::getStock, 0)
                .eq(Product::getDeleted, 0)
-               .orderByDesc(Product::getSales)
-               .last("LIMIT " + limit);
-        
-        List<Product> products = list(wrapper);
-        log.info("获取销量Top{}商品，数量: {}", limit, products.size());
-        return products;
+               .orderByDesc(Product::getSales);
+
+        page = page(page, wrapper);
+        log.info("获取销量Top{}商品，数量: {}", limit, page.getRecords().size());
+        return page.getRecords();
     }
 
     @Override

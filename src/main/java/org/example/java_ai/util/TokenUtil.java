@@ -20,19 +20,25 @@ import java.util.Date;
 @Slf4j
 public class TokenUtil {
 
-    private static String SECRET = System.getProperty("jwt.secret",
-            "AiNativeMall2026-JWT-SecretKey-MustBeAtLeast256BitsForHS256!!");
-    private static volatile SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    private static final String SECRET;
+    private static final SecretKey KEY;
     private static final long ACCESS_EXPIRATION_MS = 15L * 60 * 1000;
     private static final long REFRESH_EXPIRATION_MS = 7L * 24 * 60 * 60 * 1000;
     private static final String PREFIX = "Bearer ";
 
     static {
         String envSecret = System.getenv("JWT_SECRET");
+        String propSecret = System.getProperty("jwt.secret");
         if (envSecret != null && !envSecret.isEmpty()) {
             SECRET = envSecret;
-            KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        } else if (propSecret != null && !propSecret.isEmpty()) {
+            SECRET = propSecret;
+        } else {
+            // dev/test 默认密钥 — 生产环境必须通过 JWT_SECRET 环境变量覆盖
+            log.warn("!!! JWT_SECRET 未配置，使用开发默认密钥，生产环境请务必设置 !!!");
+            SECRET = "AiNativeMall2026-Dev-Only-Change-Me-In-Production-256!";
         }
+        KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
     // ==================== 生成 ====================

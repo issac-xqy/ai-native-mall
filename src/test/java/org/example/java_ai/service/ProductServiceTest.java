@@ -145,8 +145,12 @@ class ProductServiceTest {
     @Test
     @DisplayName("getTopSalesProducts-返回销量Top N")
     void getTopSalesProducts_Normal_ReturnsTopN() {
-        doReturn(List.of(buildProduct(1L, "爆款", "199.00", 100)))
-                .when(productMapper).selectList(any());
+        doAnswer(inv -> {
+            com.baomidou.mybatisplus.extension.plugins.pagination.Page<Product> p = inv.getArgument(0);
+            p.setRecords(List.of(buildProduct(1L, "爆款", "199.00", 100)));
+            p.setTotal(1);
+            return p;
+        }).when(productMapper).selectPage(any(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class), any());
 
         List<Product> result = productService.getTopSalesProducts(5);
 

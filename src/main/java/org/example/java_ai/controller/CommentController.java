@@ -6,8 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.common.Result;
 import org.example.java_ai.entity.ProductComment;
+import org.example.java_ai.entity.User;
+import org.example.java_ai.mapper.UserMapper;
 import org.example.java_ai.service.ProductCommentService;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.Map;
 public class CommentController {
 
     private final ProductCommentService commentService;
-    private final JdbcTemplate jdbcTemplate;
+    private final UserMapper userMapper;
 
     @GetMapping("/product/{productId}")
     public Result<Map<String, Object>> listComments(
@@ -35,14 +36,13 @@ public class CommentController {
                 .map(ProductComment::getUserId).distinct().toList();
         Map<Long, Map<String, Object>> userMap = new java.util.HashMap<>();
         if (!userIds.isEmpty()) {
-            String inClause = userIds.stream().map(String::valueOf)
-                    .collect(java.util.stream.Collectors.joining(","));
-            var users = jdbcTemplate.queryForList(
-                    "SELECT id, username, nickname FROM sys_user WHERE id IN (" + inClause + ") AND deleted = 0");
-            for (var user : users) {
-                userMap.put(((Number) user.get("id")).longValue(),
-                        Map.of("username", (String) user.get("username"),
-                                "nickname", user.get("nickname") != null ? (String) user.get("nickname") : (String) user.get("username")));
+            List<User> users = userMapper.selectBatchIds(userIds);
+            for (User user : users) {
+                if (user.getDeleted() != 1) {
+                    userMap.put(user.getId(),
+                            Map.of("username", user.getUsername(),
+                                    "nickname", user.getNickname() != null ? user.getNickname() : user.getUsername()));
+                }
             }
         }
 

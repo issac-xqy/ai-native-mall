@@ -16,7 +16,7 @@ import org.springframework.validation.annotation.Validated;
 public class AiConfigProperties {
 
     /** API Key（可通过 AI_API_KEY 环境变量覆盖） */
-    private String apiKey = "sk-placeholder";
+    private String apiKey = "";
 
     /** API 地址 */
     private String baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1";
@@ -46,7 +46,7 @@ public class AiConfigProperties {
     private boolean autoClearVectorStore = true;
 
     /** DeepSeek API Key */
-    private String deepseekApiKey = "sk-placeholder";
+    private String deepseekApiKey = "";
 
     /** DeepSeek API 地址 */
     private String deepseekBaseUrl = "https://api.deepseek.com/v1";

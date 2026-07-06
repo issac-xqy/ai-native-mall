@@ -45,9 +45,6 @@ public class AiCoreConfig {
     @Value("${spring.app.ai.max-tokens}")
     private Integer maxTokens;
 
-    @Value("${langchain4j.open-ai-chat-model.timeout:PT120S}")
-    private String timeoutDuration;
-
     @Value("${spring.data.redis.host}")
     private String redisHost;
 

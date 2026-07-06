@@ -55,11 +55,7 @@ public class AiSecurityConfig {
     public boolean validateApiKey(String apiKey) {
         if (apiKey == null || apiKey.isEmpty()) return false;
         if (!apiKey.startsWith("sk-")) return false;
-        if (validApiKeys.isEmpty()) {
-            // 未配置任何 API Key 时，任何 sk- 开头的 key 都通过
-            // 生产环境应注册白名单 key 或对接配置中心
-            return true;
-        }
+        // 必须显式注册 API Key 才能通过校验
         return validApiKeys.contains(apiKey);
     }
 
