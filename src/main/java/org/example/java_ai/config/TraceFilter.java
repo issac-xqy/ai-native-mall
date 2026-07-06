@@ -32,11 +32,24 @@ public class TraceFilter implements Filter {
         }
 
         MDC.put("traceId", traceId);
+        MDC.put("requestUri", httpReq.getRequestURI());
+        MDC.put("requestMethod", httpReq.getMethod());
+        String clientIp = httpReq.getHeader("X-Forwarded-For");
+        if (clientIp == null || clientIp.isEmpty()) {
+            clientIp = httpReq.getRemoteAddr();
+        }
+        MDC.put("clientIp", clientIp);
         httpResp.setHeader(TRACE_ID_HEADER, traceId);
+
+        long startTime = System.currentTimeMillis();
 
         try {
             chain.doFilter(request, response);
         } finally {
+            long elapsed = System.currentTimeMillis() - startTime;
+            if (elapsed > 1000) {
+                MDC.put("slowRequestMs", String.valueOf(elapsed));
+            }
             MDC.clear();
         }
     }
