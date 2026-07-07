@@ -19,6 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -55,6 +58,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -64,6 +70,8 @@ jobs:
 
       - name: Build JAR
         run: ./mvnw package -DskipTests -B
+        env:
+          JWT_SECRET: ci-test-secret-do-not-use-in-production
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
