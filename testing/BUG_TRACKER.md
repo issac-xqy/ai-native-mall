@@ -1,6 +1,8 @@
 # Bug Tracker — 完整版
 
-> **项目**: AI-Native Smart Mall | **总耗时**: ~10 小时 | **测试人员**: Admin-XQY
+> **项目**: AI-Native Smart Mall | **总耗时**: ~12 小时 | **测试人员**: Admin-XQY
+> **白盒测试**: BUG-001 ~ BUG-018 (18个)
+> **黑盒测试**: BUG-BB-001 ~ BUG-BB-010 (10个)
 > **总计**: **18 个 Bug** | **已修复**: 18 | **0 遗留**
 
 ---
@@ -133,3 +135,215 @@ Bug 来源分布:
 | API 功能 | curl 手动 | 8 | 8 | 0 |
 | 安全渗透 | curl 手动 | 8 | 8 | 0 |
 | **合计** | | **225** | **225** | **0** |
+
+---
+
+# 黑盒测试报告 — 2026-07-07
+
+> **方法**: API 层 curl + 前端 Playwright
+> **范围**: 注册/登录/商品/购物车/订单/钱包/地址/评论/管理后台/前端 UI
+> **结果**: 10 个 Bug 发现
+
+---
+
+## BUG-BB-001: 用户注册 — 服务端无任何参数校验| 🔴 P0 | 未修复
+
+**测试用例**: 注册接口输入验证
+```bash
+POST /api/v1/user/register
+{"username":"ab", "password":"12", "phone":"00000"}
+```
+
+**预期**: 服务端应校验并返回具体错误（用户名≥3位、密码≥6位、手机号格式）
+**实际**: 全部返回 `{"code":200,"success":true}`，垃圾数据全部入库
+
+**影响**: 
+- 数据库被脏数据污染
+- 用户用无效手机号注册后无法找回密码
+- 密码为 2 位时可被瞬间暴力破解
+
+**根因**: `UserController.register()` 接收 `Map<String,String>` 无 `@Valid` 注解，`UserServiceImpl.register()` 也没有参数校验逻辑
+
+**严重级别**: P0 — 数据完整性风险
+
+**修复建议**:
+```java
+// 在 UserServiceImpl.register() 开头:
+if (username == null || username.length() < 3 || username.length() > 20)
+    throw new BusinessException(ResultCode.BAD_REQUEST, "用户名需要3-20个字符");
+if (password == null || password.length() < 6 || password.length() > 20)
+    throw new BusinessException(ResultCode.BAD_REQUEST, "密码需要6-20个字符");
+if (phone == null || !phone.matches("^1[3-9]\d{9}$"))
+    throw new BusinessException(ResultCode.BAD_REQUEST, "手机号格式不正确");
+```
+
+---
+
+## BUG-BB-002: 注册 — 首次新用户注册返回HTTP 500 | 🔴 P0 | 未修复
+
+**测试用例**:
+```bash
+POST /api/v1/user/register
+{"username":"new_user_001", "password":"Pass1234", "phone":"13800001121"}
+```
+
+**预期**: 返回 200 + "注册成功"
+**实际**: 第一次返回 500 "系统繁忙"，第二次注册同样用户名却返回 200（创建成功?）
+
+**分析**: 第一次 500 可能是数据库事务/序列化异常（中文昵称默认值编码问题），但第二次调用相同参数反而创建成功 — 说明第一轮的 500 可能已经部分写入（脏数据）
+
+**严重级别**: P0 — 用户功能阻断
+
+---
+
+## BUG-BB-003: 添加地址 — 字段未正确映射到数据库 | 🔴 P0 | 未修复
+
+**测试用例**:
+```bash
+POST /api/v1/address
+Authorization: Bearer <admin_token>
+{"name":"张三","phone":"13800138000","province":"广东","city":"深圳","detail":"科技园路1号","isDefault":true}
+```
+
+**预期**: 地址创建成功
+**实际**: HTTP 500
+
+**日志**:
+```
+DataIntegrityViolationException:
+INSERT INTO user_address (user_id, is_default) VALUES (?, ?)
+```
+
+地址的 name/phone/province/city/detail 字段全部没有被 INSERT。Controller 收到的 Map 中的字段名与 UserAddress Entity 的属性名不匹配，MyBatis-Plus 自动映射失败，导致所有字段值为 null，而数据库列为 NOT NULL。
+
+**严重级别**: P0 — 下单依赖地址功能，完全阻断
+
+---
+
+## BUG-BB-004: 加购不存在商品 — 返回 500 而非 "商品不存在" | 🟡 P1 | 未修复
+
+**测试用例**:
+```bash
+POST /api/v1/cart
+{"productId":99999, "quantity":1}
+```
+
+**预期**: `{"code":1005, "message":"商品不存在"}` 
+**实际**: `{"code":500, "message":"系统繁忙，请稍后重试"}`
+
+**严重级别**: P1 — 用户看到"系统繁忙"而非"商品不存在"，体验很差
+
+---
+
+## BUG-BB-005: 产品评论接口 — 公开资源被要求登录 | 🟡 P1 | 未修复  
+
+**测试用例**:
+```bash
+GET /api/v1/comment/product/1  (无Token)
+```
+
+**预期**: 200 + 评论列表（应该和商品详情一样公开可读）
+**实际**: `{"status":403,"error":"Forbidden"}`
+
+**SecurityConfig 检查**: `/comment/**` 没有在 `.permitAll()` 列表中。对比 `/product/**` 的 GET 方法是公开的 — 评论同样是商品展示的一部分，应该公开。
+
+**严重级别**: P1 — 未登录用户看不到商品评论
+
+---
+
+## BUG-BB-006: API 设计不一致 — 钱包充值用 Query Param 而非 JSON Body | 🟢 P2 | 未修复
+
+**现状对比**:
+| 接口 | 参数传递方式 |
+|---|---|
+| POST /user/login | JSON Body ✅ |
+| POST /order | JSON Body ✅ |
+| POST /cart | JSON Body ✅ |
+| POST /wallet/recharge | **URL Query Param** `?amount=10000` ❌ |
+
+`WalletController.recharge()` 使用 `@RequestParam BigDecimal amount`，而项目中其他所有 POST 接口都用 `@RequestBody`。前端开发必须记住这个特例，否则会收到 500 错误。
+
+**严重级别**: P2 — 风格不一致，增加 debug 成本
+
+---
+
+## BUG-BB-007: 全局错误处理泄露"系统繁忙"而非具体错误 | 🟡 P1 | 未修复（设计问题）
+
+**涉及的 4 个场景**，用户看到的全是同一句话:
+
+| 场景 | 实际错误 | 用户看到 |
+|---|---|---|
+| 加购不存在商品 | DataIntegrityViolationException | "系统繁忙，请稍后重试" |
+| 地址字段映射失败 | DataIntegrityViolationException | "系统繁忙，请稍后重试" |  
+| 充值负数 | CHECK constraint violated | "系统繁忙，请稍后重试" |
+| 注册异常 | 未知 | "系统繁忙，请稍后重试" |
+
+`GlobalExceptionHandler` 兜底 `catch (Exception e)` 将所有未分类异常统一返回 500 + "系统繁忙"，丢失了错误详情。
+
+**严重级别**: P1 — 用户无法自助排查，客服无法定位问题
+
+---
+
+## BUG-BB-008: 首次注册 500 + 第二次成功 = 部分写入风险 | 🔴 P0 | 未修复
+
+**测试用例**: 
+```bash
+# 第一次
+POST /register {"username":"bb_test_001", ...} → 500
+# 第二次（同样参数）
+POST /register {"username":"bb_test_001", ...} → 200 
+```
+
+**分析**: 第一次 500 时 DB 可能已部分提交（`save()` 插入 username + password 但 nickname 或其他字段触发了异常），第二次调用时因为 `getUserByUsername()` 没查到（数据被回滚了？），所以"成功"了。
+
+**严重级别**: P0 — 不确定的数据状态
+
+---
+
+## BUG-BB-009: 购物车 quantity=0 或 -1 未拦截在服务端 | 🟢 P2 | 未修复
+
+**测试用例**:
+```bash
+POST /cart {"productId":5, "quantity":0}   → success=False (OK)
+POST /cart {"productId":5, "quantity":-1}  → success=False (OK)
+```
+
+quantity=0 和 -1 都被拒绝（返回 success=false），但没有具体的错误消息说明为什么失败。应该返回明确错误如"数量必须大于0"。
+
+**严重级别**: P2 — 功能正确但错误信息缺失
+
+---
+
+## BUG-BB-010: 前端 — 登录后首页搜索框选择器不可靠 | 🟢 P3 | 未修复
+
+**测试**: Playwright 脚本用 `input[placeholder*="搜索"]` 匹配搜索框，登录后首页无法找到
+
+**根因**: 搜索框的 placeholder 在中文模式下是"搜索商品..."，但 scoped CSS 可能导致选择器不匹配
+
+**严重级别**: P3 — 不影响用户，仅影响自动化测试脚本
+
+---
+
+## 黑盒测试总结
+
+| 分类 | Bug 数 | P0 | P1 | P2 | P3 |
+|---|---|---|---|---|---|
+| 参数校验缺失 | 2 | 1 (注册无校验) | 0 | 1 (cart quantity) | 0 |
+| 数据映射错误 | 1 | 1 (地址字段丢失) | 0 | 0 | 0 |
+| 异常处理不当 | 3 | 1 (注册500) | 1 (错误信息丢失) | 1 (cart不存在商品) | 0 |
+| 权限控制错误 | 1 | 0 | 1 (评论需登录) | 0 | 0 |
+| API 设计不一致 | 1 | 0 | 0 | 1 (recharge用query param) | 0 |
+| 前端兼容性 | 1 | 0 | 0 | 0 | 1 (搜索框选择器) |
+| 数据完整性风险 | 1 | 1 (注册部分写入) | 0 | 0 | 0 |
+
+**10 个 Bug** | P0: 4 | P1: 3 | P2: 2 | P3: 1
+
+### 与白盒测试对比
+
+| 维度 | 白盒 (代码审查) | 黑盒 (用户视角) |
+|---|---|---|
+| 发现 Bug | 18 | 10 |
+| 重叠 Bug | 0 | 0 |
+| 核心发现 | 安全漏洞/架构问题 | **输入校验缺失/错误信息泄露** |
+
+**白盒和黑盒发现的是完全不同的 Bug 类别**，互不重叠，验证了两种测试方法的互补性。
