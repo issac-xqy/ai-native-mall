@@ -85,7 +85,7 @@ const sendMessage = async () => {
   messages.value.push({ role: 'ai', content: '' })
 
   const userId = getUserId()
-  const url = `/api/ai/customer-service/stream?userId=${encodeURIComponent(userId)}&question=${encodeURIComponent(question)}&apiKey=sk-test`
+  const url = `/api/v1/ai/customer-service/stream?userId=${encodeURIComponent(userId)}&question=${encodeURIComponent(question)}&apiKey=sk-test`
 
   try {
     const response = await fetch(url)

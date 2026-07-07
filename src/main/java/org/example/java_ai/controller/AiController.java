@@ -60,7 +60,8 @@ public class AiController {
                                    @RequestParam String question,
                                    @RequestParam(required = false) String apiKey) {
 
-        if (apiKey == null || !securityConfig.validateApiKey(apiKey)) {
+        // API Key 验证：仅当后端注册了白名单 key 时才校验
+        if (securityConfig.isApiKeyCheckEnabled() && !securityConfig.validateApiKey(apiKey)) {
             return Flux.just("data: {\"error\":\"无效的API Key\"}\n\n", "data: [DONE]\n\n");
         }
         if (!securityConfig.checkRateLimit(userId, apiKey)) {
