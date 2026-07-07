@@ -3,7 +3,7 @@ package org.example.java_ai.controller;
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.java_ai.config.AiSecurityConfig;
+import org.example.java_ai.service.security.AiSecurityService;
 import org.example.java_ai.service.ai.ProductOperationService;
 import org.example.java_ai.service.ai.SmartCustomerService;
 import org.example.java_ai.util.DataMaskingUtil;
@@ -24,7 +24,7 @@ public class AiController {
 
     private final SmartCustomerService customerService;
     private final ProductOperationService productOperationService;
-    private final AiSecurityConfig securityConfig;
+    private final AiSecurityService securityConfig;
 
     @PostMapping("/customer-service/ask")
     @SentinelResource(value = "ai-api", fallback = "aiServiceFallback")

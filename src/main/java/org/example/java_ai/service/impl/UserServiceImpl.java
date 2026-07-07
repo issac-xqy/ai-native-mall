@@ -177,4 +177,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return "unknown";
         }
     }
+
+    @Override
+    public java.util.Map<Long, java.util.Map<String, Object>> getUserMap(
+            java.util.Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return java.util.Map.of();
+        java.util.Map<Long, java.util.Map<String, Object>> result = new java.util.HashMap<>();
+        java.util.List<User> users = listByIds(userIds);
+        for (User u : users) {
+            if (u.getDeleted() != 1) {
+                result.put(u.getId(), java.util.Map.of(
+                    "username", u.getUsername(),
+                    "nickname", u.getNickname() != null ? u.getNickname() : u.getUsername()));
+            }
+        }
+        return result;
+    }
 }

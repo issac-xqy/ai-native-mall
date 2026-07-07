@@ -6,9 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.common.Result;
 import org.example.java_ai.entity.ProductComment;
-import org.example.java_ai.entity.User;
-import org.example.java_ai.mapper.UserMapper;
 import org.example.java_ai.service.ProductCommentService;
+import org.example.java_ai.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.Map;
 public class CommentController {
 
     private final ProductCommentService commentService;
-    private final UserMapper userMapper;
+    private final UserService userService;
 
     @GetMapping("/product/{productId}")
     public Result<Map<String, Object>> listComments(
@@ -34,17 +33,7 @@ public class CommentController {
 
         List<Long> userIds = page.getRecords().stream()
                 .map(ProductComment::getUserId).distinct().toList();
-        Map<Long, Map<String, Object>> userMap = new java.util.HashMap<>();
-        if (!userIds.isEmpty()) {
-            List<User> users = userMapper.selectBatchIds(userIds);
-            for (User user : users) {
-                if (user.getDeleted() != 1) {
-                    userMap.put(user.getId(),
-                            Map.of("username", user.getUsername(),
-                                    "nickname", user.getNickname() != null ? user.getNickname() : user.getUsername()));
-                }
-            }
-        }
+        Map<Long, Map<String, Object>> userMap = userService.getUserMap(userIds);
 
         List<Map<String, Object>> commentsWithUser = page.getRecords().stream()
             .map(comment -> {

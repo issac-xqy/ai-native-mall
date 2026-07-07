@@ -1,11 +1,10 @@
 package org.example.java_ai.controller.admin;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.aspect.AiMonitorAspect;
-import org.example.java_ai.entity.Product;
 import org.example.java_ai.service.ProductService;
+import org.example.java_ai.service.StatisticsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +22,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminStatisticsController {
 
+    private final StatisticsService statisticsService;
     private final JdbcTemplate jdbcTemplate;
     private final ProductService productService;
     private final AiMonitorAspect aiMonitorAspect;

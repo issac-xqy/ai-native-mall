@@ -1,8 +1,9 @@
-package org.example.java_ai.config;
+package org.example.java_ai.service.security;
 
 import com.github.houbb.sensitive.word.bs.SensitiveWordBs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.java_ai.config.RedisRateLimiter;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -14,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiSecurityConfig {
+public class AiSecurityService {
 
     private final RedisRateLimiter redisRateLimiter;
 

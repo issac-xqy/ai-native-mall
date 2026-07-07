@@ -3,7 +3,7 @@ package org.example.java_ai.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.test.autoconfigure.MybatisPlusTest;
-import org.example.java_ai.config.MybatisPlusInterceptorConfig;
+import org.example.java_ai.config.MybatisPlusConfig;
 import org.example.java_ai.entity.Product;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @MybatisPlusTest(excludeAutoConfiguration = org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @ActiveProfiles("test")
-@Import(MybatisPlusInterceptorConfig.class)
+@Import(MybatisPlusConfig.class)
 @Sql(scripts = "/schema-h2.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @DisplayName("ProductMapper 单元测试")
 class ProductMapperTest {

@@ -1,4 +1,4 @@
-package org.example.java_ai.config;
+package org.example.java_ai.runner;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;

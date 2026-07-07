@@ -39,4 +39,9 @@ public interface UserService extends IService<User> {
      * 修改密码
      */
     boolean changePassword(Long userId, String oldPassword, String newPassword);
+
+    /**
+     * 批量查询用户信息 Map (userId → {username, nickname})
+     */
+    java.util.Map<Long, java.util.Map<String, Object>> getUserMap(java.util.Collection<Long> userIds);
 }
