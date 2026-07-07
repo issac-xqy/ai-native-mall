@@ -27,7 +27,7 @@ class OrderControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @MockBean private OrderService orderService;
-    private final String token = TokenUtil.generateToken(1L);
+    private final String token = TokenUtil.generateAccessToken(1L);
 
     @Test
     @DisplayName("创建订单-正常下单-返回订单信息")

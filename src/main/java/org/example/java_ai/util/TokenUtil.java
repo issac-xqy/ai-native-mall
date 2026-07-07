@@ -43,10 +43,6 @@ public class TokenUtil {
 
     // ==================== 生成 ====================
 
-    public static String generateToken(Long userId) {
-        return generateAccessToken(userId);
-    }
-
     public static String generateAccessToken(Long userId) {
         Date now = new Date();
         return PREFIX + Jwts.builder()

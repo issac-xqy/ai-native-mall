@@ -11,7 +11,7 @@ class TokenUtilTest {
     @Test
     @DisplayName("generateToken-正常userId-生成包含Bearer前缀的token")
     void generateToken_ValidUserId_ReturnsBearerToken() {
-        String token = TokenUtil.generateToken(1L);
+        String token = TokenUtil.generateAccessToken(1L);
         assertNotNull(token);
         assertTrue(token.startsWith("Bearer "));
         assertTrue(token.length() > "Bearer ".length());
@@ -20,15 +20,15 @@ class TokenUtilTest {
     @Test
     @DisplayName("generateToken-不同userId-生成不同token")
     void generateToken_DifferentUserIds_DifferentTokens() {
-        String token1 = TokenUtil.generateToken(1L);
-        String token2 = TokenUtil.generateToken(2L);
+        String token1 = TokenUtil.generateAccessToken(1L);
+        String token2 = TokenUtil.generateAccessToken(2L);
         assertNotEquals(token1, token2);
     }
 
     @Test
     @DisplayName("parseUserId-有效token-正确解析userId")
     void parseUserId_ValidToken_ReturnsUserId() {
-        String token = TokenUtil.generateToken(42L);
+        String token = TokenUtil.generateAccessToken(42L);
         Long userId = TokenUtil.parseUserId(token);
         assertEquals(42L, userId);
     }
@@ -48,7 +48,7 @@ class TokenUtilTest {
     @Test
     @DisplayName("parseUserId-无Bearer前缀-也能解析")
     void parseUserId_NoBearerPrefix_StillParses() {
-        String token = TokenUtil.generateToken(7L);
+        String token = TokenUtil.generateAccessToken(7L);
         String withoutPrefix = token.substring("Bearer ".length());
         Long userId = TokenUtil.parseUserId(withoutPrefix);
         assertEquals(7L, userId);
@@ -71,7 +71,7 @@ class TokenUtilTest {
     @Test
     @DisplayName("isTokenValid-刚生成的token-返回true")
     void isTokenValid_FreshToken_ReturnsTrue() {
-        String token = TokenUtil.generateToken(1L);
+        String token = TokenUtil.generateAccessToken(1L);
         assertTrue(TokenUtil.isTokenValid(token));
     }
 
@@ -112,7 +112,7 @@ class TokenUtilTest {
     @DisplayName("往返测试-生成token后解析-得到原始userId")
     void roundTrip_GenerateAndParse_OriginalUserId() {
         Long original = 100L;
-        String token = TokenUtil.generateToken(original);
+        String token = TokenUtil.generateAccessToken(original);
         Long parsed = TokenUtil.parseUserId(token);
         assertEquals(original, parsed);
         assertTrue(TokenUtil.isTokenValid(token));

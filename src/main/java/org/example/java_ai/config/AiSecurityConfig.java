@@ -24,15 +24,6 @@ public class AiSecurityConfig {
             .enableWordCheck(true)
             .init();
 
-    /**
-     * 注册有效 API Key（生产环境应从数据库或配置中心同步）
-     */
-    public void registerApiKey(String apiKey) {
-        if (apiKey != null && apiKey.startsWith("sk-")) {
-            validApiKeys.add(apiKey);
-        }
-    }
-
     public boolean checkRateLimit(String userId, String apiKey) {
         boolean qpsOk = redisRateLimiter.tryAcquire("qps:" + userId, 10, 1);
         if (!qpsOk) {
@@ -63,10 +54,5 @@ public class AiSecurityConfig {
         if (apiKey == null || apiKey.isEmpty()) return false;
         if (!apiKey.startsWith("sk-")) return false;
         return validApiKeys.contains(apiKey);
-    }
-
-    public void revokeApiKey(String apiKey) {
-        validApiKeys.remove(apiKey);
-        log.info("API Key 已撤销: {}...", apiKey.substring(0, Math.min(10, apiKey.length())));
     }
 }

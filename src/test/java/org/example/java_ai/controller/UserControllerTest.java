@@ -27,7 +27,7 @@ class UserControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @MockBean private UserService userService;
-    private final String validToken = TokenUtil.generateToken(1L);
+    private final String validToken = TokenUtil.generateAccessToken(1L);
 
     @Test
     @DisplayName("登录-正确用户名密码-返回token")

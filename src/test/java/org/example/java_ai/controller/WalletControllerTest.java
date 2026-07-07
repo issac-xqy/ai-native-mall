@@ -32,7 +32,7 @@ class WalletControllerTest {
     @MockBean
     private UserWalletService walletService;
 
-    private final String token = TokenUtil.generateToken(1L);
+    private final String token = TokenUtil.generateAccessToken(1L);
 
     @Test
     @DisplayName("钱包信息-有钱包-返回钱包数据")

@@ -25,15 +25,4 @@ public enum OrderStatus {
         }
         throw new IllegalArgumentException("Invalid order status: " + code);
     }
-
-    /** 检查是否可以转换到此状态 */
-    public static boolean canTransition(int from, int to) {
-        return switch (from) {
-            case 0 -> to == 1 || to == 4;
-            case 1 -> to == 2;
-            case 2 -> to == 3;
-            case 3, 4 -> false;
-            default -> false;
-        };
-    }
 }
