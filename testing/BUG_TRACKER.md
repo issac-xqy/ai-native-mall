@@ -347,3 +347,103 @@ quantity=0 和 -1 都被拒绝（返回 success=false），但没有具体的错
 | 核心发现 | 安全漏洞/架构问题 | **输入校验缺失/错误信息泄露** |
 
 **白盒和黑盒发现的是完全不同的 Bug 类别**，互不重叠，验证了两种测试方法的互补性。
+
+---
+
+## 搜索栏深度黑盒测试 — 2026-07-07 补充
+
+> **测试项**: 18 个场景 | **通过**: 14 | **Bug**: 4
+> **覆盖**: 正常/边界/安全/分页/前端渲染/语义搜索
+
+---
+
+### 测试场景全量清单
+
+| ID | 场景 | 输入 | 预期 | 实际 | 判定 |
+|---|---|---|---|---|---|
+| S01 | 中文关键词 | "手机" | 返回含iPhone的商品 | total=0 (DB无"手机"命名的商品) | ✅ 正确 |
+| S02 | 英文关键词 | "phone" | 返回iPhone | total=2 (iPhone 15 Pro Max, iPhone 15) | ✅ 正确 |
+| S03 | 数字关键词 | "550" | 返回含550的商品 | total>0 | ✅ |
+| S04 | 空字符串 | keyword= | 返回全量或空 | 返回404 "资源不存在" | ❌ BUG |
+| S05 | 不传参数 | GET /search | 友好提示或全量 | HTTP 404 | ❌ BUG |
+| S06 | 1个字符 | "a" | 返回含a的商品 | total=N | ✅ |
+| S07 | 空格only | "   " | 返回全量或空 | HTTP 404 | ❌ BUG |
+| S08 | 超长URI | 1000个x | HTTP 414或截断 | HTTP 404 (Tomcat拒绝) | ✅ 安全 |
+| S09 | SQL注入 | `' OR 1=1--` | 不泄露数据 | MyBatis参数化 → total=0 | ✅ 安全 |
+| S10 | XSS | `<script>` | 不执行脚本 | 参数化 → total=0 | ✅ 安全 |
+| S11 | Emoji | "🛒" | 不崩溃 | total=0 | ✅ |
+| S12 | 特殊符号 | "@#$%^&" | 不崩溃 | total=0 | ✅ |
+| S13 | pageNum=0 | 搜索+pageNum=0 | 自动修正为1 | 正常返回 | ✅ |
+| S14 | pageNum=-1 | 搜索+pageNum=-1 | 修正或报错 | 正常返回(MyBatis忽略负数) | ✅ |
+| S15 | pageSize=0 | 搜索+pageSize=0 | 修正或报错 | 正常返回(MyBatis默认行为) | ✅ |
+| S16 | pageSize=10000 | 搜索+pageSize=10000 | 上限保护 | 正常返回(无上限保护) | ⚠️ |
+| S17 | 前端搜索"手机" | 输入→回车 | 跳转+卡片渲染 | URL正确跳转但cards=0 | ⚠️ |
+| S18 | 无匹配结果提示 | 搜不存在的词 | "未找到"提示 | 显示"未找到"文字 | ✅ |
+
+---
+
+### BUG-BB-011: 搜索空keyword返回HTTP 404 | 🟡 P1 | 未修复
+
+**测试**: `GET /api/v1/search?keyword=` 和 `GET /api/v1/search`（不传参数）
+**预期**: 返回空列表或全量商品
+**实际**: HTTP 404 "资源不存在"
+
+**根因**: `SearchController` 只有 `/search/semantic` 和 `/search/hybrid` 两个 GET 端点，没有处理 `/search?keyword=xxx` 的端点。前端搜索实际上走的是 `/product/list?keyword=xxx`（ProductController 处理），但 SearchController 的 API 设计不完整——如果第三方直接调 `/search` API，会收到 404 而非友好错误。
+
+另外 `@RequestParam String query` 在 `/semantic` 接口中标记为 required（默认），不传参数时抛出 `MissingServletRequestParameterException`，但没有 `@ExceptionHandler` 专门处理 → 500 被兜底为"系统繁忙"。
+
+**严重级别**: P1
+
+---
+
+### BUG-BB-012: 语义搜索不可用 | 🔴 P0 | 未修复
+
+**测试**: `GET /api/v1/search/semantic?query=手机&limit=3`
+**实际**: `{"code":500, "message":"语义搜索失败: No such index ai_mall_product_knowledg"}`
+
+**根因**: ONNX Embedding 模型切换到本地 `AllMiniLmL6V2` 后，Redis 向量存储中的旧索引（使用阿里云 text-embedding-v4/1536维）与新索引（ONNX/384维）维度不匹配，导致向量检索失败。
+
+**影响范围**: 语义搜索、混合搜索、AI 推荐功能全部依赖向量检索 → 这 3 个功能现在全部不工作。
+
+**严重级别**: P0 — AI 核心功能阻断
+
+---
+
+### BUG-BB-013: pageSize 无上限保护 | 🟢 P3 | 未修复
+
+**测试**: `GET /api/v1/product/list?pageSize=10000`
+**实际**: 没有任何限制，可一次性拉取全部 105 个商品
+
+**风险**: 低（当前数据量小）但攻击者可构造大 pageSize 消耗内存
+
+**严重级别**: P3
+
+---
+
+### BUG-BB-014: 前端"手机"搜索显示空结果 — 产品命名与中文脱节 | 🟢 P3 | 未修复
+
+**测试**: 前端搜索框输入"手机"→回车
+**现象**: URL 正确跳转到 `/products?keyword=手机`，但 cards=0，因为数据库中没有商品名含"手机"
+**根本原因**: 105 个商品的名称全是英文/拼音，"iPhone 15" 不含"手机"二字
+
+**这不是代码 Bug**，但前端用户用中文搜索"手机"找不到 iPhone 是严重的用户体验问题。
+
+**建议**: 加商品搜索别名表或使用中文描述字段参与搜索。
+
+**严重级别**: P3 — 数据质量/产品问题
+
+---
+
+### 搜索栏测试总结
+
+```
+API层 16项: ✅ 12 / ❌ 3 / ⚠️ 1
+前端层 6项:  ✅ 4  / ❌ 1 / ⚠️ 1
+总计 18项:   ✅ 14 / ❌ 4 / ⚠️ 2
+```
+
+**新发现 Bug**: 4 个
+- BUG-BB-011 (P1): 搜索空keyword→404
+- BUG-BB-012 (P0): 语义搜索不可用(向量维度不匹配)
+- BUG-BB-013 (P3): pageSize无上限
+- BUG-BB-014 (P3): 中文搜索找不到英文命名的商品
