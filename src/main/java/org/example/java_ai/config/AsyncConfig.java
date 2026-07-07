@@ -6,7 +6,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 
 /**
  * 异步任务线程池配置 — JDK 21 虚拟线程模式
@@ -17,7 +20,7 @@ import java.util.concurrent.Executor;
 @Slf4j
 @Configuration
 @EnableAsync
-public class AsyncConfig {
+public class AsyncConfig implements AsyncConfigurer {
 
     @Bean("virtualTaskExecutor")
     public Executor virtualTaskExecutor() {
@@ -35,5 +38,12 @@ public class AsyncConfig {
         executor.setConcurrencyLimit(100);
         log.info("虚拟线程 Executor 已初始化: ai-stream- (concurrencyLimit=100)");
         return executor;
+    }
+
+    @Override
+    public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+        return (Throwable ex, Method method, Object... params) -> {
+            log.error("Async 方法 [{}] 未捕获异常, 参数个数={}", method.getName(), params.length, ex);
+        };
     }
 }

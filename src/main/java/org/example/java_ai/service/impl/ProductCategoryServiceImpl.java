@@ -3,6 +3,8 @@ package org.example.java_ai.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.entity.ProductCategory;
 import org.example.java_ai.mapper.ProductCategoryMapper;
@@ -27,6 +29,7 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
     private final ProductMapper productMapper;
 
     @Override
+    @Cacheable(value = "categoryTree")
     public List<ProductCategory> getCategoryTree() {
         log.info("获取分类树");
         
@@ -56,6 +59,7 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "categoryTree", allEntries = true)
     public ProductCategory createCategory(ProductCategory category) {
         log.info("创建分类: {}", category.getName());
         
@@ -78,6 +82,7 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "categoryTree", allEntries = true)
     public ProductCategory updateCategory(ProductCategory category) {
         log.info("更新分类: ID={}, Name={}", category.getId(), category.getName());
         
@@ -100,6 +105,7 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "categoryTree", allEntries = true)
     public boolean deleteCategory(Long id) {
         log.info("删除分类: ID={}", id);
         

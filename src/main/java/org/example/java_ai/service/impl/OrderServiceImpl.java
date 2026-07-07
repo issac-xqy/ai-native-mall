@@ -30,7 +30,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserWalletService walletService;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> createOrder(Long userId, String orderNo, List<Map<String, Object>> items) {
         if (orderNo == null || orderNo.isEmpty()) {
             orderNo = "ORD" + System.currentTimeMillis() + String.format("%04d", userId);
@@ -83,7 +83,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> payOrder(Long userId, String orderNo, String paymentMethod) {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");
@@ -135,7 +135,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> refundOrder(Long userId, String orderNo, String reason) {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");
@@ -158,7 +158,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> cancelOrder(Long userId, String orderNo) {
         Order order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) return fail("订单不存在");

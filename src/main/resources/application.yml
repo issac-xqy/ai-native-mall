@@ -23,6 +23,13 @@ spring:
 
   lifecycle:
     timeout-per-shutdown-phase: 30s
+
+  # Redis 缓存 (商品/分类/购物车)
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000  # 5分钟
+      cache-null-values: false
   
   # UTF-8 encoding configuration
   # Disable Spring AI autoconfiguration (project uses LangChain4j primarily)

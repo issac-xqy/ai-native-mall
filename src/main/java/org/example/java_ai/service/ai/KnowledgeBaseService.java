@@ -46,7 +46,7 @@ public class KnowledgeBaseService {
     /**
      * 上传文档并建立知识库
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public KnowledgeDocument uploadDocument(MultipartFile file, String title, String category, Long userId, String userName) {
         log.info("开始上传知识库文档: {}, 分类: {}", file.getOriginalFilename(), category);
 
@@ -153,7 +153,7 @@ public class KnowledgeBaseService {
     /**
      * 删除知识库文档
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void deleteDocument(Long id) {
         KnowledgeDocument kb = knowledgeDocumentMapper.selectById(id);
         if (kb == null) {
@@ -222,7 +222,7 @@ public class KnowledgeBaseService {
     /**
      * 重新向量化文档
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public boolean reVectorize(Long id) {
         KnowledgeDocument kb = knowledgeDocumentMapper.selectById(id);
         if (kb == null) {

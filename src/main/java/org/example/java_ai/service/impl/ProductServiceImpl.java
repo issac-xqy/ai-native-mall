@@ -3,6 +3,8 @@ package org.example.java_ai.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.java_ai.entity.Product;
@@ -73,6 +75,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @Cacheable(value = "product", key = "#id", unless = "#result == null")
     public Product getProductById(Long id) {
         // 查询商品（包括未上架的，前端根据publishStatus显示无货）
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
@@ -90,6 +93,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @CacheEvict(value = {"topSales", "topRated"}, allEntries = true)
     public Product createProduct(Product product) {
         save(product);
         log.info("创建商品成功: {}", product.getName());
@@ -101,6 +105,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @CacheEvict(value = {"product", "topSales", "topRated"}, key = "#product.id", condition = "#product.id != null")
     public Product updateProduct(Product product) {
         updateById(product);
         log.info("更新商品成功: {}", product.getName());
@@ -112,6 +117,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @CacheEvict(value = {"product", "topSales", "topRated"}, key = "#id")
     public boolean deleteProduct(Long id) {
         // 异步删除向量索引
         semanticSearchService.removeProductIndex(id);
@@ -364,6 +370,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @Cacheable(value = "topSales", key = "#limit")
     public List<Product> getTopSalesProducts(Integer limit) {
         // 查询销量Top N商品，用户端只显示已上架且有库存的
         // 用 Page 对象限制条数，避免 .last() 字符串拼接风险
@@ -380,6 +387,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
+    @Cacheable(value = "topRated", key = "#limit")
     public List<Product> getTopRatedProducts(Integer limit) {
         // 基于评论表的rating字段计算平均值进行排名，无评论商品不参与排名
         String sql = """

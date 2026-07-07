@@ -29,7 +29,7 @@ public class UserAddressServiceImpl extends ServiceImpl<UserAddressMapper, UserA
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public UserAddress addAddress(UserAddress address) {
         // 如果是第一个地址或标记为默认，则设为默认
         Long count = count(new LambdaQueryWrapper<UserAddress>()
@@ -48,7 +48,7 @@ public class UserAddressServiceImpl extends ServiceImpl<UserAddressMapper, UserA
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public UserAddress updateAddress(UserAddress address) {
         // 如果设置为默认地址，先取消其他默认
         if (address.getIsDefault() == 1) {
@@ -61,7 +61,7 @@ public class UserAddressServiceImpl extends ServiceImpl<UserAddressMapper, UserA
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public boolean setDefault(Long id, Long userId) {
         // 验证地址归属
         UserAddress address = getById(id);
