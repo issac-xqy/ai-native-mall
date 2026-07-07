@@ -66,3 +66,4 @@ web-client/e2e-screenshots/
 web-client/test-results/
 web-client/playwright-report/
 ops-reports/
+openapi.json
