@@ -55,7 +55,7 @@ public class AiController {
     }
 
     @GetMapping(value = "/customer-service/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @SentinelResource(value = "ai-api")
+    @SentinelResource(value = "ai-api", fallback = "streamAiFallback")
     public Flux<String> streamAsk(@RequestParam String userId,
                                    @RequestParam String question,
                                    @RequestParam(required = false) String apiKey) {
@@ -81,6 +81,7 @@ public class AiController {
     }
 
     @PostMapping("/product/seo-title")
+    @SentinelResource(value = "ai-api", fallback = "aiServiceFallbackAsync")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> generateSeoTitle(
             @RequestBody Map<String, String> request) {
         String productName = request.get("productName");
@@ -95,6 +96,7 @@ public class AiController {
     }
 
     @PostMapping("/product/description")
+    @SentinelResource(value = "ai-api", fallback = "aiServiceFallbackAsync")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> generateDescription(
             @RequestBody Map<String, Object> request) {
         String productName = (String) request.get("productName");
@@ -110,6 +112,7 @@ public class AiController {
     }
 
     @PostMapping("/comment/analyze")
+    @SentinelResource(value = "ai-api", fallback = "aiServiceFallbackAsync")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> analyzeComment(
             @RequestBody Map<String, String> request) {
         String commentText = request.get("commentText");
@@ -141,6 +144,7 @@ public class AiController {
     }
 
     @PostMapping("/product/reputation-report")
+    @SentinelResource(value = "ai-api", fallback = "aiServiceFallbackAsync")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> generateReputationReport(
             @RequestBody Map<String, Object> request) {
         @SuppressWarnings("unchecked")
@@ -153,12 +157,33 @@ public class AiController {
                 )));
     }
 
-    /** Sentinel 限流/熔断 fallback */
+    /** Sentinel 限流/熔断 fallback — 同步接口 */
     public ResponseEntity<Map<String, Object>> aiServiceFallback(Map<String, String> request, Throwable t) {
         log.warn("AI 服务触发 Sentinel 限流/熔断: {}", t.getMessage());
         return ResponseEntity.status(503).body(Map.of(
             "success", false,
             "error", "AI服务繁忙，请稍后重试"
         ));
+    }
+
+    /** Sentinel fallback — 异步接口 */
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> aiServiceFallbackAsync(
+            Object request, Throwable t) {
+        log.warn("AI 异步服务触发 Sentinel 限流/熔断: {}", t.getMessage());
+        return CompletableFuture.completedFuture(
+            ResponseEntity.status(503).body(Map.of(
+                "success", false,
+                "error", "AI服务繁忙，请稍后重试"
+            ))
+        );
+    }
+
+    /** Sentinel fallback — 流式接口 */
+    public Flux<String> streamAiFallback(String userId, String question, String apiKey, Throwable t) {
+        log.warn("AI 流式服务触发 Sentinel 限流/熔断: {}", t.getMessage());
+        return Flux.just(
+            "data: {\"error\":\"AI服务繁忙，请稍后重试\"}\n\n",
+            "data: [DONE]\n\n"
+        );
     }
 }

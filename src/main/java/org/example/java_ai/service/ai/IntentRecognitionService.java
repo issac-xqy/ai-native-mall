@@ -1,5 +1,7 @@
 package org.example.java_ai.service.ai;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class IntentRecognitionService {
 
     private final ChatLanguageModel chatModel;
+    private final ObjectMapper objectMapper;
 
     /**
      * 意图枚举
@@ -162,31 +165,24 @@ public class IntentRecognitionService {
      * 从JSON字符串解析实体
      */
     private Map<String, String> parseEntitiesFromJson(String json) {
-        Map<String, String> entities = new HashMap<>();
-        
         try {
-            // 简单的JSON解析（生产环境建议使用Jackson或Gson）
             json = json.trim();
             if (json.startsWith("{") && json.endsWith("}")) {
-                json = json.substring(1, json.length() - 1);
-                
-                String[] pairs = json.split(",");
-                for (String pair : pairs) {
-                    String[] kv = pair.split(":");
-                    if (kv.length == 2) {
-                        String key = kv[0].trim().replaceAll("\"", "");
-                        String value = kv[1].trim().replaceAll("\"", "");
-                        
-                        if (!"null".equals(value) && !value.isEmpty()) {
-                            entities.put(key, value);
-                        }
+                Map<String, Object> raw = objectMapper.readValue(json,
+                        new TypeReference<Map<String, Object>>() {});
+                Map<String, String> entities = new HashMap<>();
+                for (var entry : raw.entrySet()) {
+                    Object val = entry.getValue();
+                    if (val != null && !"null".equals(String.valueOf(val))
+                            && !String.valueOf(val).isEmpty()) {
+                        entities.put(entry.getKey(), String.valueOf(val));
                     }
                 }
+                return entities;
             }
         } catch (Exception e) {
             log.warn("JSON解析失败: {}", json, e);
         }
-        
-        return entities;
+        return new HashMap<>();
     }
 }

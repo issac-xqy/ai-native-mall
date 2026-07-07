@@ -46,17 +46,9 @@ public class SentinelConfig {
         aiFlowRule.setCount(20);
         aiFlowRule.setLimitApp("default");
         rules.add(aiFlowRule);
-        
-        // 商品接口限流：QPS = 100
-        FlowRule productFlowRule = new FlowRule();
-        productFlowRule.setResource("product-api");
-        productFlowRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        productFlowRule.setCount(100);
-        productFlowRule.setLimitApp("default");
-        rules.add(productFlowRule);
-        
+
         FlowRuleManager.loadRules(rules);
-        log.info("Sentinel限流规则初始化完成");
+        log.info("Sentinel限流规则初始化完成 (ai-api QPS=20)");
     }
 
     /**
@@ -75,18 +67,8 @@ public class SentinelConfig {
         aiDegradeRule.setMinRequestAmount(5); // 最小请求数
         aiDegradeRule.setStatIntervalMs(1000); // 统计时长：1秒
         rules.add(aiDegradeRule);
-        
-        // 商品接口熔断：RT超过1000ms熔断5秒
-        DegradeRule productDegradeRule = new DegradeRule();
-        productDegradeRule.setResource("product-api");
-        productDegradeRule.setGrade(RuleConstant.DEGRADE_GRADE_RT);
-        productDegradeRule.setCount(1000);
-        productDegradeRule.setTimeWindow(5);
-        productDegradeRule.setMinRequestAmount(5);
-        productDegradeRule.setStatIntervalMs(1000);
-        rules.add(productDegradeRule);
-        
+
         DegradeRuleManager.loadRules(rules);
-        log.info("Sentinel熔断规则初始化完成");
+        log.info("Sentinel熔断规则初始化完成 (ai-api RT>3000ms → 熔断10s)");
     }
 }
